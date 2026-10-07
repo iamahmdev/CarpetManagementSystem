@@ -20,7 +20,7 @@ export default function ShowUser() {
             <div className="max-w-2xl space-y-6 p-4">
                 <div className="flex items-center justify-between gap-4">
                     <Heading title={user.name} description="User details" />
-                    {auth.permissions.includes('users.update') && (
+                    {auth.permissions.includes('users.manage') && (
                         <Button asChild>
                             <Link href={edit(user.id)}>Edit user</Link>
                         </Button>

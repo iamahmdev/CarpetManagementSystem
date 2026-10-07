@@ -46,7 +46,7 @@ export function AppSidebar() {
                     href: '/profile',
                     icon: UserRound,
                 },
-                ...(auth.permissions.includes('users.view')
+                ...(auth.permissions.includes('users.manage')
                     ? [
                           {
                               title: 'Users and Roles',

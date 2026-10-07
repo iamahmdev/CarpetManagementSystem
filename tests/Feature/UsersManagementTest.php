@@ -141,6 +141,17 @@ test('admins can manage users only within their configured permissions', functio
     expect($user->refresh()->role)->toBe(UserRole::ADMIN);
 });
 
+test('users management permission is granted to owners and admins only', function () {
+    expect(config('permissions'))->toContain('users.manage')
+        ->and(config('permissions'))->not->toContain('users.view')
+        ->and(config('permissions'))->not->toContain('users.create')
+        ->and(config('permissions'))->not->toContain('users.update')
+        ->and(config('permissions'))->not->toContain('users.delete')
+        ->and(config('roles.owner'))->toContain('users.manage')
+        ->and(config('roles.admin'))->toContain('users.manage')
+        ->and(config('roles.sales'))->not->toContain('users.manage');
+});
+
 test('sales users cannot access user management', function () {
     $salesUser = User::factory()->create(['role' => UserRole::SALES]);
     $otherUser = User::factory()->create();

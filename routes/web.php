@@ -11,25 +11,25 @@ Route::middleware('auth')->group(function () {
 
 Route::middleware('auth')->group(function () {
     Route::get('users', [UserController::class, 'index'])
-        ->middleware('permission:users.view')
+        ->middleware('permission:users.manage')
         ->name('users.index');
     Route::get('users/create', [UserController::class, 'create'])
-        ->middleware('permission:users.create')
+        ->middleware('permission:users.manage')
         ->name('users.create');
     Route::post('users', [UserController::class, 'store'])
-        ->middleware('permission:users.create')
+        ->middleware('permission:users.manage')
         ->name('users.store');
     Route::get('users/{user}', [UserController::class, 'show'])
-        ->middleware('permission:users.view')
+        ->middleware('permission:users.manage')
         ->name('users.show');
     Route::get('users/{user}/edit', [UserController::class, 'edit'])
-        ->middleware('permission:users.update')
+        ->middleware('permission:users.manage')
         ->name('users.edit');
     Route::match(['put', 'patch'], 'users/{user}', [UserController::class, 'update'])
-        ->middleware('permission:users.update')
+        ->middleware('permission:users.manage')
         ->name('users.update');
     Route::delete('users/{user}', [UserController::class, 'destroy'])
-        ->middleware('permission:users.delete')
+        ->middleware(['permission:users.manage', 'role:owner'])
         ->name('users.destroy');
 });
 

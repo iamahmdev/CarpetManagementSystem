@@ -25,9 +25,8 @@ type Props = {
 
 export default function UsersIndex() {
     const { auth, users } = usePage<Props>().props;
-    const canCreate = auth.permissions.includes('users.create');
-    const canUpdate = auth.permissions.includes('users.update');
-    const canDelete = auth.permissions.includes('users.delete');
+    const canManageUsers = auth.permissions.includes('users.manage');
+    const canDeleteUsers = canManageUsers && auth.user.role === 'owner';
 
     return (
         <>
@@ -38,7 +37,7 @@ export default function UsersIndex() {
                         title="Users"
                         description="View and manage system users."
                     />
-                    {canCreate && (
+                    {canManageUsers && (
                         <Button asChild>
                             <Link href={create()}>Create user</Link>
                         </Button>
@@ -73,7 +72,7 @@ export default function UsersIndex() {
                                             >
                                                 View
                                             </Link>
-                                            {canUpdate && (
+                                            {canManageUsers && (
                                                 <Link
                                                     href={edit(user.id)}
                                                     className="text-primary underline-offset-4 hover:underline"
@@ -81,7 +80,7 @@ export default function UsersIndex() {
                                                     Edit
                                                 </Link>
                                             )}
-                                            {canDelete &&
+                                            {canDeleteUsers &&
                                                 user.id !== auth.user.id && (
                                                     <Form
                                                         {...UserController.destroy.form(

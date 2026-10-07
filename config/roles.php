@@ -4,10 +4,7 @@ return [
 
     'owner' => [
 
-        'users.view',
-        'users.create',
-        'users.update',
-        'users.delete',
+        'users.manage',
 
         'locations.view',
         'locations.create',
@@ -41,9 +38,7 @@ return [
 
     'admin' => [
 
-        'users.view',
-        'users.create',
-        'users.update',
+        'users.manage',
 
         'locations.view',
         'locations.create',

@@ -2,10 +2,7 @@
 
 return [
 
-    'users.view',
-    'users.create',
-    'users.update',
-    'users.delete',
+    'users.manage',
 
     'locations.view',
     'locations.create',
