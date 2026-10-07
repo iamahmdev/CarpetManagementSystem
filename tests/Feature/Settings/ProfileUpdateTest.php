@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\User;
+use App\UserRole;
+use Inertia\Testing\AssertableInertia;
 
 test('profile page is displayed', function () {
     $user = User::factory()->create();
@@ -10,6 +12,73 @@ test('profile page is displayed', function () {
         ->get(route('profile.edit'));
 
     $response->assertOk();
+});
+
+test('profile navigation URL opens the authenticated user profile', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get('/profile')
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('settings/profile'),
+        );
+});
+
+test('profile navigation does not require a profile permission', function () {
+    $user = User::factory()->create();
+    config(['roles.sales' => []]);
+
+    $this->actingAs($user)
+        ->get('/profile')
+        ->assertOk();
+});
+
+test('owners can view and update their own profile', function () {
+    $owner = User::factory()->create(['role' => UserRole::OWNER]);
+
+    $this->actingAs($owner)
+        ->get(route('profile.edit'))
+        ->assertOk();
+
+    $this->patch(route('profile.update'), [
+        'name' => 'Owner Profile',
+        'email' => $owner->email,
+    ])->assertRedirect(route('profile.edit'));
+
+    expect($owner->refresh()->name)->toBe('Owner Profile');
+});
+
+test('profile updates only affect the authenticated user', function () {
+    $user = User::factory()->create();
+    $otherUser = User::factory()->create();
+
+    $this->actingAs($user)
+        ->patch(route('profile.update'), [
+            'user_id' => $otherUser->id,
+            'name' => 'Updated Own Profile',
+            'email' => $user->email,
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($user->refresh()->name)->toBe('Updated Own Profile')
+        ->and($otherUser->refresh()->name)->not->toBe('Updated Own Profile');
+});
+
+test('profile update requires the existing profile update permission', function () {
+    $user = User::factory()->create();
+    config(['roles.sales' => ['profile.view']]);
+
+    $this->actingAs($user)
+        ->get(route('profile.edit'))
+        ->assertOk();
+
+    $this->patch(route('profile.update'), [
+        'name' => 'Unauthorized Update',
+        'email' => $user->email,
+    ])->assertForbidden();
+
+    expect($user->refresh()->name)->not->toBe('Unauthorized Update');
 });
 
 test('profile information can be updated', function () {
@@ -50,36 +119,28 @@ test('email verification status is unchanged when the email address is unchanged
     expect($user->refresh()->email_verified_at)->not->toBeNull();
 });
 
-test('user can delete their account', function () {
+test('users cannot delete their own account from the profile settings', function () {
     $user = User::factory()->create();
 
     $response = $this
         ->actingAs($user)
-        ->delete(route('profile.destroy'), [
+        ->delete('/settings/profile', [
             'password' => 'password',
         ]);
 
-    $response
-        ->assertSessionHasNoErrors()
-        ->assertRedirect(route('home'));
-
-    $this->assertGuest();
-    expect($user->fresh())->toBeNull();
+    $response->assertMethodNotAllowed();
+    expect($user->fresh())->not->toBeNull();
 });
 
-test('correct password must be provided to delete account', function () {
+test('invalid password cannot bypass disabled profile deletion', function () {
     $user = User::factory()->create();
 
     $response = $this
         ->actingAs($user)
-        ->from(route('profile.edit'))
-        ->delete(route('profile.destroy'), [
+        ->delete('/settings/profile', [
             'password' => 'wrong-password',
         ]);
 
-    $response
-        ->assertSessionHasErrors('password')
-        ->assertRedirect(route('profile.edit'));
-
+    $response->assertMethodNotAllowed();
     expect($user->fresh())->not->toBeNull();
 });

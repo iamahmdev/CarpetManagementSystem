@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\UserRole;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Fortify\Features;
@@ -61,6 +62,20 @@ test('password can be updated', function () {
     expect(Hash::check('new-password', $user->refresh()->password))->toBeTrue();
 });
 
+test('owners can change their own password after confirming the current password', function () {
+    $owner = User::factory()->create(['role' => UserRole::OWNER]);
+
+    $this->actingAs($owner)
+        ->put(route('user-password.update'), [
+            'current_password' => 'password',
+            'password' => 'owner-new-password',
+            'password_confirmation' => 'owner-new-password',
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect(Hash::check('owner-new-password', $owner->refresh()->password))->toBeTrue();
+});
+
 test('correct password must be provided to update password', function () {
     $user = User::factory()->create();
 
@@ -76,4 +91,36 @@ test('correct password must be provided to update password', function () {
     $response
         ->assertSessionHasErrors('current_password')
         ->assertRedirect(route('security.edit'));
+});
+
+test('password confirmation must match the new password', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->from(route('security.edit'))
+        ->put(route('user-password.update'), [
+            'current_password' => 'password',
+            'password' => 'new-password',
+            'password_confirmation' => 'different-password',
+        ])
+        ->assertSessionHasErrors('password');
+
+    expect(Hash::check('password', $user->refresh()->password))->toBeTrue();
+});
+
+test('password changes require the existing profile update permission', function () {
+    $user = User::factory()->create();
+    config(['roles.sales' => ['profile.view']]);
+
+    $this->actingAs($user)
+        ->get(route('security.edit'))
+        ->assertOk();
+
+    $this->put(route('user-password.update'), [
+        'current_password' => 'password',
+        'password' => 'new-password',
+        'password_confirmation' => 'new-password',
+    ])->assertForbidden();
+
+    expect(Hash::check('password', $user->refresh()->password))->toBeTrue();
 });
