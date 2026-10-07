@@ -108,9 +108,9 @@ test('password confirmation must match the new password', function () {
     expect(Hash::check('password', $user->refresh()->password))->toBeTrue();
 });
 
-test('password changes require the existing profile update permission', function () {
+test('users without role permissions can view security settings and change their own password', function () {
     $user = User::factory()->create();
-    config(['roles.sales' => ['profile.view']]);
+    config(['roles.sales' => []]);
 
     $this->actingAs($user)
         ->get(route('security.edit'))
@@ -120,7 +120,7 @@ test('password changes require the existing profile update permission', function
         'current_password' => 'password',
         'password' => 'new-password',
         'password_confirmation' => 'new-password',
-    ])->assertForbidden();
+    ])->assertSessionHasNoErrors();
 
-    expect(Hash::check('password', $user->refresh()->password))->toBeTrue();
+    expect(Hash::check('new-password', $user->refresh()->password))->toBeTrue();
 });

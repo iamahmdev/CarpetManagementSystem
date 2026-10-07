@@ -142,14 +142,10 @@ test('admins can manage users only within their configured permissions', functio
 });
 
 test('users management permission is granted to owners and admins only', function () {
-    expect(config('permissions'))->toContain('users.manage')
-        ->and(config('permissions'))->not->toContain('users.view')
-        ->and(config('permissions'))->not->toContain('users.create')
-        ->and(config('permissions'))->not->toContain('users.update')
-        ->and(config('permissions'))->not->toContain('users.delete')
-        ->and(config('roles.owner'))->toContain('users.manage')
-        ->and(config('roles.admin'))->toContain('users.manage')
-        ->and(config('roles.sales'))->not->toContain('users.manage');
+    expect(config('permissions'))->toBe(['users.manage'])
+        ->and(config('roles.owner'))->toBe(['users.manage'])
+        ->and(config('roles.admin'))->toBe(['users.manage'])
+        ->and(config('roles.sales'))->toBe([]);
 });
 
 test('sales users cannot access user management', function () {

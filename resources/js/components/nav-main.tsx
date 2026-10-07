@@ -10,9 +10,13 @@ import {
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import type { NavItem } from '@/types';
 
+type DisabledNavItem = Pick<NavItem, 'title' | 'icon'> & {
+    disabled: true;
+};
+
 export type NavGroup = {
     title: string;
-    items: NavItem[];
+    items: (NavItem | DisabledNavItem)[];
 };
 
 export function NavMain({ groups }: { groups: NavGroup[] }) {
@@ -30,34 +34,45 @@ export function NavMain({ groups }: { groups: NavGroup[] }) {
                                 {group.items.map((item) => (
                                     <SidebarMenuItem key={item.title}>
                                         <SidebarMenuButton
-                                            asChild
+                                            asChild={!('disabled' in item)}
+                                            disabled={'disabled' in item}
                                             isActive={
-                                                isCurrentUrl(
+                                                !('disabled' in item) &&
+                                                (isCurrentUrl(
                                                     item.href,
                                                     undefined,
                                                     true,
                                                 ) ||
-                                                (item.title === 'Profile' &&
-                                                    currentUrl.startsWith(
-                                                        '/settings/',
-                                                    ))
+                                                    (item.title === 'Profile' &&
+                                                        currentUrl.startsWith(
+                                                            '/settings/',
+                                                        )))
                                             }
                                             tooltip={{
                                                 children: item.title,
                                             }}
                                         >
-                                            <Link
-                                                href={item.href}
-                                                prefetch
-                                                onClick={() => {
-                                                    if (isMobile) {
-                                                        setOpenMobile(false);
-                                                    }
-                                                }}
-                                            >
-                                                {item.icon && <item.icon />}
-                                                <span>{item.title}</span>
-                                            </Link>
+                                            {'disabled' in item ? (
+                                                <>
+                                                    {item.icon && <item.icon />}
+                                                    <span>{item.title}</span>
+                                                </>
+                                            ) : (
+                                                <Link
+                                                    href={item.href}
+                                                    prefetch
+                                                    onClick={() => {
+                                                        if (isMobile) {
+                                                            setOpenMobile(
+                                                                false,
+                                                            );
+                                                        }
+                                                    }}
+                                                >
+                                                    {item.icon && <item.icon />}
+                                                    <span>{item.title}</span>
+                                                </Link>
+                                            )}
                                         </SidebarMenuButton>
                                     </SidebarMenuItem>
                                 ))}

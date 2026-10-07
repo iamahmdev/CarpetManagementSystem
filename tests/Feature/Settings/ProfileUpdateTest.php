@@ -65,20 +65,20 @@ test('profile updates only affect the authenticated user', function () {
         ->and($otherUser->refresh()->name)->not->toBe('Updated Own Profile');
 });
 
-test('profile update requires the existing profile update permission', function () {
+test('users without role permissions can view and update their own profile', function () {
     $user = User::factory()->create();
-    config(['roles.sales' => ['profile.view']]);
+    config(['roles.sales' => []]);
 
     $this->actingAs($user)
         ->get(route('profile.edit'))
         ->assertOk();
 
     $this->patch(route('profile.update'), [
-        'name' => 'Unauthorized Update',
+        'name' => 'Updated Profile',
         'email' => $user->email,
-    ])->assertForbidden();
+    ])->assertRedirect(route('profile.edit'));
 
-    expect($user->refresh()->name)->not->toBe('Unauthorized Update');
+    expect($user->refresh()->name)->toBe('Updated Profile');
 });
 
 test('profile information can be updated', function () {

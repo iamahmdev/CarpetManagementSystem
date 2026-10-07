@@ -1,5 +1,15 @@
 import { Link, usePage } from '@inertiajs/react';
-import { LayoutGrid, UserRound, Users } from 'lucide-react';
+import {
+    ArrowLeftRight,
+    BarChart3,
+    Box,
+    LayoutGrid,
+    MapPin,
+    Package,
+    ShoppingCart,
+    UserRound,
+    Users,
+} from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -39,13 +49,8 @@ export function AppSidebar() {
             ],
         },
         {
-            title: 'Settings',
+            title: 'Management',
             items: [
-                {
-                    title: 'Profile',
-                    href: '/profile',
-                    icon: UserRound,
-                },
                 ...(auth.permissions.includes('users.manage')
                     ? [
                           {
@@ -55,6 +60,56 @@ export function AppSidebar() {
                           },
                       ]
                     : []),
+                {
+                    title: 'Carpets',
+                    icon: Package,
+                    disabled: true,
+                },
+                {
+                    title: 'Pieces',
+                    icon: Box,
+                    disabled: true,
+                },
+                {
+                    title: 'Containers',
+                    icon: Box,
+                    disabled: true,
+                },
+                {
+                    title: 'Transfers',
+                    icon: ArrowLeftRight,
+                    disabled: true,
+                },
+                {
+                    title: 'Sales',
+                    icon: ShoppingCart,
+                    disabled: true,
+                },
+            ],
+        },
+        {
+            title: 'Reports',
+            items: [
+                {
+                    title: 'Reports',
+                    icon: BarChart3,
+                    disabled: true,
+                },
+            ],
+        },
+        {
+            title: 'Settings',
+            items: [
+                {
+                    title: 'Locations',
+                    icon: MapPin,
+                    disabled: true,
+                },
+                {
+                    title: 'Profile',
+                    href: '/profile',
+                    icon: UserRound,
+                },
             ],
         },
     ];
