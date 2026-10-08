@@ -109,11 +109,15 @@ export function AppSidebar() {
                     href: '/profile',
                     icon: 'profile',
                 },
-                {
-                    title: 'Locations',
-                    href: '/locations',
-                    icon: 'locations',
-                },
+                ...(auth.permissions.includes('locations.manage')
+                    ? [
+                          {
+                              title: 'Locations',
+                              href: '/locations',
+                              icon: 'locations' as const,
+                          },
+                      ]
+                    : []),
                 ...(auth.permissions.includes('users.manage')
                     ? [
                           {

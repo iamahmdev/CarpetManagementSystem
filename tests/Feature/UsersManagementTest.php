@@ -141,9 +141,9 @@ test('admins can manage users only within their configured permissions', functio
     expect($user->refresh()->role)->toBe(UserRole::ADMIN);
 });
 
-test('users management permission is granted to owners and admins only', function () {
-    expect(config('permissions'))->toBe(['users.manage'])
-        ->and(config('roles.owner'))->toBe(['users.manage'])
+test('users and locations permissions are granted to their configured roles only', function () {
+    expect(config('permissions'))->toBe(['users.manage', 'locations.manage'])
+        ->and(config('roles.owner'))->toBe(['users.manage', 'locations.manage'])
         ->and(config('roles.admin'))->toBe(['users.manage'])
         ->and(config('roles.sales'))->toBe([]);
 });

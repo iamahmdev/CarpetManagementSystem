@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\LocationController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -32,6 +33,13 @@ Route::middleware('auth')->group(function () {
     Route::delete('users/{user}', [UserController::class, 'destroy'])
         ->middleware(['permission:users.manage', 'role:owner'])
         ->name('users.destroy');
+
+    Route::middleware('permission:locations.manage')->group(function () {
+        Route::get('locations', [LocationController::class, 'index'])
+            ->name('locations.index');
+        Route::post('locations', [LocationController::class, 'store'])
+            ->name('locations.store');
+    });
 
     $placeholderPages = [
         [
@@ -93,12 +101,6 @@ Route::middleware('auth')->group(function () {
             'name' => 'profit-report.index',
             'title' => 'Profit',
             'subtitle' => 'Revenue against the landed cost of the pieces sold.',
-        ],
-        [
-            'path' => 'locations',
-            'name' => 'locations.index',
-            'title' => 'Locations',
-            'subtitle' => 'Warehouses and displays. A new city is just a new row, with no code changes.',
         ],
     ];
 
