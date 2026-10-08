@@ -499,6 +499,49 @@
     font-size: 16px;
 }
 
+.carpets-card {
+    width: 100%;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--card);
+    padding: 22px 26px;
+}
+
+.carpets-search {
+    max-width: 320px;
+    margin: 0 0 16px;
+}
+
+.carpets-table-wrap {
+    overflow-x: auto;
+}
+
+.carpets-table {
+    min-width: 950px;
+}
+
+.carpets-table th {
+    padding: 10px 12px;
+    font-size: 14px;
+}
+
+.carpets-table td {
+    padding: 14px 12px;
+    font-size: 16px;
+    white-space: nowrap;
+}
+
+.carpets-sku {
+    color: var(--muted);
+}
+
+.carpets-empty {
+    padding: 32px 12px !important;
+    color: var(--muted);
+    text-align: center;
+}
+
 .location-dialog {
     border-radius: 14px;
 }
@@ -558,6 +601,68 @@
 }
 
 .location-dialog-foot {
+    border-top: 1px solid var(--border);
+    padding: 14px 20px;
+}
+
+.carpet-dialog {
+    border-radius: 14px;
+}
+
+.carpet-dialog-head {
+    min-height: 58px;
+    justify-content: center;
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px;
+}
+
+.carpet-dialog-head h2 {
+    font-size: 18px;
+}
+
+.carpet-dialog-body {
+    padding: 18px 20px 6px;
+}
+
+.carpet-form-row {
+    display: flex;
+    gap: 12px;
+}
+
+.carpet-form-row > * {
+    flex: 1;
+    min-width: 0;
+}
+
+.carpet-field {
+    min-width: 0;
+    margin-bottom: 12px;
+}
+
+.carpet-field label {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.carpet-field input {
+    width: 100%;
+    min-height: 38px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+    padding: 8px 10px;
+    color: var(--ink);
+    font-size: 15px;
+}
+
+.carpet-field input:focus {
+    outline: 2px solid color-mix(in srgb, var(--indigo) 30%, transparent);
+    outline-offset: 1px;
+}
+
+.carpet-dialog-foot {
     border-top: 1px solid var(--border);
     padding: 14px 20px;
 }
