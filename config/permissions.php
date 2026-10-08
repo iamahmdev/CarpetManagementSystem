@@ -3,4 +3,5 @@
 return [
 
     'users.manage',
+    'locations.manage',
 ];

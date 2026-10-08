@@ -5,6 +5,7 @@ return [
     'owner' => [
 
         'users.manage',
+        'locations.manage',
     ],
 
     'admin' => [

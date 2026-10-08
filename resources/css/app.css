@@ -472,6 +472,96 @@
     margin-top: 4px;
 }
 
+.locations-card {
+    width: 100%;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--card);
+    padding: 18px 26px;
+}
+
+.locations-table-wrap {
+    overflow-x: auto;
+}
+
+.locations-table {
+    min-width: 650px;
+}
+
+.locations-table th {
+    padding: 12px;
+    font-size: 14px;
+}
+
+.locations-table td {
+    padding: 14px 12px;
+    font-size: 16px;
+}
+
+.location-dialog {
+    border-radius: 14px;
+}
+
+.location-dialog-head {
+    min-height: 58px;
+    justify-content: center;
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px;
+}
+
+.location-dialog-head h2 {
+    font-size: 18px;
+}
+
+.location-dialog-body {
+    padding: 18px 20px 6px;
+}
+
+.location-field {
+    min-width: 0;
+    margin-bottom: 12px;
+}
+
+.location-field label {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.location-field input,
+.location-field select {
+    width: 100%;
+    min-height: 38px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+    padding: 8px 10px;
+    color: var(--ink);
+    font-size: 15px;
+}
+
+.location-field input:focus,
+.location-field select:focus {
+    outline: 2px solid color-mix(in srgb, var(--indigo) 30%, transparent);
+    outline-offset: 1px;
+}
+
+.location-form-row {
+    display: flex;
+    gap: 12px;
+}
+
+.location-form-row > * {
+    flex: 1;
+}
+
+.location-dialog-foot {
+    border-top: 1px solid var(--border);
+    padding: 14px 20px;
+}
+
 .field {
     margin-bottom: 12px;
 }

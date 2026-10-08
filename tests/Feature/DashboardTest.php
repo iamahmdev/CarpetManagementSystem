@@ -47,7 +47,6 @@ test('unimplemented navigation items render only their placeholder headers', fun
         '/stock-report' => 'Stock by location',
         '/container-report' => 'Container profitability',
         '/profit' => 'Profit',
-        '/locations' => 'Locations',
     ];
 
     foreach ($pages as $path => $title) {
