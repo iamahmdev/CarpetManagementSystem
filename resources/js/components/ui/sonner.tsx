@@ -14,9 +14,9 @@ function Toaster({ ...props }: ToasterProps) {
             position="bottom-right"
             style={
                 {
-                    '--normal-bg': 'var(--popover)',
-                    '--normal-text': 'var(--popover-foreground)',
-                    '--normal-border': 'var(--border)',
+                    '--normal-bg': 'var(--toast-bg)',
+                    '--normal-text': 'var(--toast-text)',
+                    '--normal-border': 'var(--toast-bg)',
                 } as React.CSSProperties
             }
             {...props}

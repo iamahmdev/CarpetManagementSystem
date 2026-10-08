@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
 
-const MOBILE_BREAKPOINT = 900;
+const MOBILE_BREAKPOINT = 901;
 
 const mql =
     typeof window === 'undefined'

@@ -1,15 +1,4 @@
 import { Link, usePage } from '@inertiajs/react';
-import {
-    ArrowLeftRight,
-    BarChart3,
-    Box,
-    LayoutGrid,
-    MapPin,
-    Package,
-    ShoppingCart,
-    UserRound,
-    Users,
-} from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -23,7 +12,6 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
-import { index as usersIndex } from '@/routes/users';
 import type { NavGroup } from '@/components/nav-main';
 
 type PageProps = {
@@ -44,46 +32,52 @@ export function AppSidebar() {
                 {
                     title: 'Dashboard',
                     href: dashboard(),
-                    icon: LayoutGrid,
+                    icon: 'dashboard',
                 },
             ],
         },
         {
-            title: 'Management',
+            title: 'Inventory',
             items: [
-                ...(auth.permissions.includes('users.manage')
-                    ? [
-                          {
-                              title: 'Users and Roles',
-                              href: usersIndex(),
-                              icon: Users,
-                          },
-                      ]
-                    : []),
                 {
                     title: 'Carpets',
-                    icon: Package,
-                    disabled: true,
+                    href: '/carpets',
+                    icon: 'carpets',
                 },
                 {
                     title: 'Pieces',
-                    icon: Box,
-                    disabled: true,
+                    href: '/pieces',
+                    icon: 'pieces',
                 },
                 {
                     title: 'Containers',
-                    icon: Box,
-                    disabled: true,
+                    href: '/containers',
+                    icon: 'containers',
                 },
                 {
                     title: 'Transfers',
-                    icon: ArrowLeftRight,
-                    disabled: true,
+                    href: '/transfers',
+                    icon: 'transfers',
+                },
+            ],
+        },
+        {
+            title: 'Sales',
+            items: [
+                {
+                    title: 'New Sale',
+                    href: '/new-sale',
+                    icon: 'sale',
                 },
                 {
-                    title: 'Sales',
-                    icon: ShoppingCart,
-                    disabled: true,
+                    title: 'Sales History',
+                    href: '/sales',
+                    icon: 'history',
+                },
+                {
+                    title: 'Customers',
+                    href: '/customers',
+                    icon: 'customers',
                 },
             ],
         },
@@ -91,9 +85,19 @@ export function AppSidebar() {
             title: 'Reports',
             items: [
                 {
-                    title: 'Reports',
-                    icon: BarChart3,
-                    disabled: true,
+                    title: 'Stock by Location',
+                    href: '/stock-report',
+                    icon: 'stock',
+                },
+                {
+                    title: 'Container Profitability',
+                    href: '/container-report',
+                    icon: 'profitab',
+                },
+                {
+                    title: 'Profit',
+                    href: '/profit',
+                    icon: 'profit',
                 },
             ],
         },
@@ -101,25 +105,38 @@ export function AppSidebar() {
             title: 'Settings',
             items: [
                 {
-                    title: 'Locations',
-                    icon: MapPin,
-                    disabled: true,
-                },
-                {
                     title: 'Profile',
                     href: '/profile',
-                    icon: UserRound,
+                    icon: 'profile',
                 },
+                {
+                    title: 'Locations',
+                    href: '/locations',
+                    icon: 'locations',
+                },
+                ...(auth.permissions.includes('users.manage')
+                    ? [
+                          {
+                              title: 'Users and Roles',
+                              href: '/users',
+                              icon: 'roles' as const,
+                          },
+                      ]
+                    : []),
             ],
         },
     ];
 
     return (
-        <Sidebar collapsible="offcanvas" variant="sidebar">
+        <Sidebar
+            className="carpet-sidebar"
+            collapsible="offcanvas"
+            variant="sidebar"
+        >
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton size="lg" asChild>
+                        <SidebarMenuButton size="lg" asChild className="gap-2">
                             <Link href={dashboard()} prefetch>
                                 <AppLogo />
                             </Link>

@@ -1,6 +1,5 @@
 import { Form, Head, usePage } from '@inertiajs/react';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
-import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,82 +11,106 @@ type PageProps = {
     auth: Auth;
 };
 
+const permissionLabels: Record<string, string> = {
+    'users.manage': 'Manage users and roles',
+};
+
 export default function Profile() {
     const { auth } = usePage<PageProps>().props;
 
     return (
         <>
-            <Head title="Profile settings" />
+            <Head title="Profile" />
 
-            <h1 className="sr-only">Profile settings</h1>
-
-            <div className="space-y-6">
-                <Heading
-                    variant="small"
-                    title="Profile"
-                    description="Update your name and email address"
-                />
+            <main className="profile-view">
+                <header className="page-head">
+                    <div>
+                        <h1>Profile</h1>
+                        <p className="sub">Your account details.</p>
+                    </div>
+                </header>
 
                 <Form
                     {...ProfileController.update.form()}
                     options={{
                         preserveScroll: true,
                     }}
-                    className="space-y-6"
+                    className="demo-card profile-card"
                 >
                     {({ processing, errors }) => (
                         <>
-                            <div className="grid gap-2">
-                                <Label htmlFor="name">Name</Label>
+                            <div className="demo-profile-row">
+                                <div className="demo-field">
+                                    <Label htmlFor="name">Name</Label>
+                                    <Input
+                                        id="name"
+                                        defaultValue={auth.user.name}
+                                        name="name"
+                                        required
+                                        autoComplete="name"
+                                        placeholder="Full name"
+                                    />
+                                    <InputError
+                                        className="mt-1"
+                                        message={errors.name}
+                                    />
+                                </div>
 
-                                <Input
-                                    id="name"
-                                    className="mt-1 block w-full"
-                                    defaultValue={auth.user.name}
-                                    name="name"
-                                    required
-                                    autoComplete="name"
-                                    placeholder="Full name"
-                                />
-
-                                <InputError
-                                    className="mt-2"
-                                    message={errors.name}
-                                />
+                                <div className="demo-field">
+                                    <Label htmlFor="email">Email address</Label>
+                                    <Input
+                                        id="email"
+                                        type="email"
+                                        defaultValue={auth.user.email}
+                                        name="email"
+                                        required
+                                        autoComplete="username"
+                                        placeholder="Email address"
+                                    />
+                                    <InputError
+                                        className="mt-1"
+                                        message={errors.email}
+                                    />
+                                </div>
                             </div>
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">Email address</Label>
-
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    className="mt-1 block w-full"
-                                    defaultValue={auth.user.email}
-                                    name="email"
-                                    required
-                                    autoComplete="username"
-                                    placeholder="Email address"
-                                />
-
-                                <InputError
-                                    className="mt-2"
-                                    message={errors.email}
-                                />
+                            <div className="profile-role">
+                                <div className="small-muted">Role</div>
+                                <span className="demo-role-badge">
+                                    {auth.user.role}
+                                </span>
                             </div>
 
-                            <div className="flex items-center gap-4">
+                            <div className="profile-permissions">
+                                <div className="small-muted">
+                                    What this role can do
+                                </div>
+                                <div>
+                                    {auth.permissions.map((permission) => (
+                                        <span
+                                            className="demo-chip"
+                                            key={permission}
+                                        >
+                                            {permissionLabels[permission] ??
+                                                permission}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="profile-actions">
                                 <Button
                                     disabled={processing}
+                                    className="demo-primary-button"
                                     data-test="update-profile-button"
                                 >
-                                    Save
+                                    Save changes
                                 </Button>
                             </div>
                         </>
                     )}
                 </Form>
-            </div>
+            </main>
         </>
     );
 }

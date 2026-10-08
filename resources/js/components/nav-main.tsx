@@ -7,16 +7,17 @@ import {
     SidebarMenuItem,
     useSidebar,
 } from '@/components/ui/sidebar';
+import { DemoIcon, type DemoIconName } from '@/components/demo-icon';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import type { NavItem } from '@/types';
 
-type DisabledNavItem = Pick<NavItem, 'title' | 'icon'> & {
-    disabled: true;
+type SidebarNavItem = Omit<NavItem, 'icon'> & {
+    icon: DemoIconName;
 };
 
 export type NavGroup = {
     title: string;
-    items: (NavItem | DisabledNavItem)[];
+    items: SidebarNavItem[];
 };
 
 export function NavMain({ groups }: { groups: NavGroup[] }) {
@@ -34,45 +35,34 @@ export function NavMain({ groups }: { groups: NavGroup[] }) {
                                 {group.items.map((item) => (
                                     <SidebarMenuItem key={item.title}>
                                         <SidebarMenuButton
-                                            asChild={!('disabled' in item)}
-                                            disabled={'disabled' in item}
+                                            asChild
                                             isActive={
-                                                !('disabled' in item) &&
-                                                (isCurrentUrl(
+                                                isCurrentUrl(
                                                     item.href,
                                                     undefined,
                                                     true,
                                                 ) ||
-                                                    (item.title === 'Profile' &&
-                                                        currentUrl.startsWith(
-                                                            '/settings/',
-                                                        )))
+                                                (item.title === 'Profile' &&
+                                                    currentUrl.startsWith(
+                                                        '/settings/',
+                                                    ))
                                             }
                                             tooltip={{
                                                 children: item.title,
                                             }}
                                         >
-                                            {'disabled' in item ? (
-                                                <>
-                                                    {item.icon && <item.icon />}
-                                                    <span>{item.title}</span>
-                                                </>
-                                            ) : (
-                                                <Link
-                                                    href={item.href}
-                                                    prefetch
-                                                    onClick={() => {
-                                                        if (isMobile) {
-                                                            setOpenMobile(
-                                                                false,
-                                                            );
-                                                        }
-                                                    }}
-                                                >
-                                                    {item.icon && <item.icon />}
-                                                    <span>{item.title}</span>
-                                                </Link>
-                                            )}
+                                            <Link
+                                                href={item.href}
+                                                prefetch
+                                                onClick={() => {
+                                                    if (isMobile) {
+                                                        setOpenMobile(false);
+                                                    }
+                                                }}
+                                            >
+                                                <DemoIcon name={item.icon} />
+                                                <span>{item.title}</span>
+                                            </Link>
                                         </SidebarMenuButton>
                                     </SidebarMenuItem>
                                 ))}

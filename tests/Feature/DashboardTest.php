@@ -33,3 +33,31 @@ test('unknown routes render the Inertia not found page', function () {
             ->where('status', 404),
         );
 });
+
+test('unimplemented navigation items render only their placeholder headers', function () {
+    $user = User::factory()->create(['role' => UserRole::SALES]);
+    $pages = [
+        '/carpets' => 'Carpets',
+        '/pieces' => 'Pieces',
+        '/containers' => 'Containers',
+        '/transfers' => 'Transfers',
+        '/new-sale' => 'New sale',
+        '/sales' => 'Sales history',
+        '/customers' => 'Customers',
+        '/stock-report' => 'Stock by location',
+        '/container-report' => 'Container profitability',
+        '/profit' => 'Profit',
+        '/locations' => 'Locations',
+    ];
+
+    foreach ($pages as $path => $title) {
+        $this->actingAs($user)
+            ->get($path)
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('placeholder')
+                ->where('title', $title)
+                ->has('subtitle'),
+            );
+    }
+});

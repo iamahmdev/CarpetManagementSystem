@@ -9,6 +9,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
@@ -42,6 +43,18 @@ return Application::configure(basePath: dirname(__DIR__))
 
             return Inertia::render('errors/page', [
                 'status' => $status,
+                'role' => $request->user()?->role?->value
+                    ? Str::headline($request->user()->role->value)
+                    : null,
+                'pageLabel' => match (true) {
+                    str_starts_with($request->path(), 'users') => 'Users and Roles',
+                    str_starts_with($request->path(), 'carpets') => 'Carpets',
+                    str_starts_with($request->path(), 'pieces') => 'Pieces',
+                    str_starts_with($request->path(), 'containers') => 'Containers',
+                    str_starts_with($request->path(), 'transfers') => 'Transfers',
+                    str_starts_with($request->path(), 'sales') => 'Sales History',
+                    default => Str::headline(basename($request->path())),
+                },
             ])->toResponse($request)->setStatusCode($status);
         });
 
