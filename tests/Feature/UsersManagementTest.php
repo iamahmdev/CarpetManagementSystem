@@ -141,11 +141,25 @@ test('admins can manage users only within their configured permissions', functio
     expect($user->refresh()->role)->toBe(UserRole::ADMIN);
 });
 
-test('users and locations permissions are granted to their configured roles only', function () {
-    expect(config('permissions'))->toBe(['users.manage', 'locations.manage'])
-        ->and(config('roles.owner'))->toBe(['users.manage', 'locations.manage'])
-        ->and(config('roles.admin'))->toBe(['users.manage'])
-        ->and(config('roles.sales'))->toBe([]);
+test('each configured permission is granted to the correct roles', function () {
+    expect(config('permissions'))->toBe([
+        'users.manage',
+        'locations.manage',
+        'catalog.view',
+        'catalog.manage',
+    ])
+        ->and(config('roles.owner'))->toBe([
+            'users.manage',
+            'locations.manage',
+            'catalog.view',
+            'catalog.manage',
+        ])
+        ->and(config('roles.admin'))->toBe([
+            'users.manage',
+            'catalog.view',
+            'catalog.manage',
+        ])
+        ->and(config('roles.sales'))->toBe(['catalog.view']);
 });
 
 test('sales users cannot access user management', function () {

@@ -39,11 +39,15 @@ export function AppSidebar() {
         {
             title: 'Inventory',
             items: [
-                {
-                    title: 'Carpets',
-                    href: '/carpets',
-                    icon: 'carpets',
-                },
+                ...(auth.permissions.includes('catalog.view')
+                    ? [
+                          {
+                              title: 'Carpets',
+                              href: '/carpets',
+                              icon: 'carpets' as const,
+                          },
+                      ]
+                    : []),
                 {
                     title: 'Pieces',
                     href: '/pieces',

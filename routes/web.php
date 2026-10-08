@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CarpetController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -41,13 +42,14 @@ Route::middleware('auth')->group(function () {
             ->name('locations.store');
     });
 
+    Route::get('carpets', [CarpetController::class, 'index'])
+        ->middleware('permission:catalog.view')
+        ->name('carpets.index');
+    Route::post('carpets', [CarpetController::class, 'store'])
+        ->middleware('permission:catalog.manage')
+        ->name('carpets.store');
+
     $placeholderPages = [
-        [
-            'path' => 'carpets',
-            'name' => 'carpets.index',
-            'title' => 'Carpets',
-            'subtitle' => 'The catalog of varieties. Each physical carpet is tracked separately under Pieces.',
-        ],
         [
             'path' => 'pieces',
             'name' => 'pieces.index',

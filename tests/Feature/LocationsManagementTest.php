@@ -185,7 +185,11 @@ test('the locations sidebar permission is owner only', function () {
     $this->actingAs($admin)
         ->get(route('dashboard'))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('auth.permissions', ['users.manage']),
+            ->where('auth.permissions', [
+                'users.manage',
+                'catalog.view',
+                'catalog.manage',
+            ]),
         );
 });
 
