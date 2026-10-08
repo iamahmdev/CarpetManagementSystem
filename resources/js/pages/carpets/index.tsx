@@ -114,7 +114,7 @@ export default function CarpetsIndex({ carpets, canManage }: Props) {
                         value={search}
                         onChange={(event) => setSearch(event.target.value)}
                     />
-                    <div className="carpets-table-wrap">
+                    <div className="tbl-wrap carpets-table-wrap">
                         <table className="carpets-table">
                             <thead>
                                 <tr>

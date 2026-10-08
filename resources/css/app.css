@@ -368,13 +368,37 @@
     border-bottom: 1px solid var(--border);
 }
 
-.carpet-topbar [data-slot='breadcrumb-list'] {
+.carpet-topbar .crumbs {
+    min-width: 0;
     flex: 1;
+    overflow: hidden;
+}
+
+.carpet-topbar .crumbs-list {
+    min-width: 0;
+    width: 100%;
     flex-wrap: nowrap;
     gap: 8px;
     overflow: hidden;
     white-space: nowrap;
     color: var(--muted);
+}
+
+.carpet-topbar .crumbs-list [data-slot='breadcrumb-item'] {
+    min-width: 0;
+    overflow: hidden;
+}
+
+.carpet-topbar .crumb-current-item {
+    flex: 1;
+}
+
+.carpet-topbar .crumb-group,
+.carpet-topbar .crumb-current {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .carpet-topbar [data-slot='breadcrumb-link'] {
@@ -413,44 +437,6 @@
     background: var(--card);
     padding: 8px 10px 8px 32px;
     font-size: 14px;
-}
-
-.carpet-role-view {
-    display: flex;
-    min-width: 0;
-    flex: none;
-    align-items: center;
-    gap: 6px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background-color: var(--card) !important;
-    padding: 0 10px;
-    color: var(--ink);
-    color-scheme: inherit;
-    white-space: nowrap;
-}
-
-.carpet-role-view span {
-    color: var(--muted);
-    font-size: 14px;
-}
-
-.carpet-role-view select {
-    width: auto;
-    min-height: 46px;
-    border: 0;
-    background-color: var(--card) !important;
-    padding: 8px 2px;
-    color: var(--ink);
-    color-scheme: inherit;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.carpet-role-view option {
-    background-color: var(--card);
-    color: var(--ink);
 }
 
 .page-head {
@@ -501,11 +487,19 @@
 
 .carpets-card {
     width: 100%;
-    overflow: hidden;
+    min-width: 0;
     border: 1px solid var(--border);
     border-radius: var(--radius);
     background: var(--card);
-    padding: 22px 26px;
+    padding: 18px 20px;
+}
+
+.carpets-page {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 1240px;
+    min-width: 0;
+    margin-inline: auto;
 }
 
 .carpets-search {
@@ -514,21 +508,10 @@
 }
 
 .carpets-table-wrap {
-    overflow-x: auto;
-}
-
-.carpets-table {
-    min-width: 950px;
-}
-
-.carpets-table th {
-    padding: 10px 12px;
-    font-size: 14px;
+    min-width: 0;
 }
 
 .carpets-table td {
-    padding: 14px 12px;
-    font-size: 16px;
     white-space: nowrap;
 }
 
@@ -1054,6 +1037,7 @@
 }
 
 .tbl-wrap {
+    min-width: 0;
     overflow-x: auto;
 }
 

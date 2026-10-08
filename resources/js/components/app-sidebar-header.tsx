@@ -1,30 +1,11 @@
-import { useState } from 'react';
 import { usePage } from '@inertiajs/react';
+import { getAppNavGroups } from '@/components/app-nav-groups';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { DemoIcon } from '@/components/demo-icon';
 import { Button } from '@/components/ui/button';
 import { useSidebar } from '@/components/ui/sidebar';
+import { toUrl } from '@/lib/utils';
 import type { BreadcrumbItem as BreadcrumbItemType } from '@/types';
-
-const pageTitles: Record<string, string> = {
-    '/dashboard': 'Dashboard',
-    '/carpets': 'Carpets',
-    '/pieces': 'Pieces',
-    '/containers': 'Containers',
-    '/transfers': 'Transfers',
-    '/new-sale': 'New Sale',
-    '/sales': 'Sales History',
-    '/customers': 'Customers',
-    '/stock-report': 'Stock by Location',
-    '/container-report': 'Container Profitability',
-    '/profit': 'Profit',
-    '/profile': 'Profile',
-    '/settings/profile': 'Profile',
-    '/settings/security': 'Security',
-    '/settings/appearance': 'Appearance',
-    '/locations': 'Locations',
-    '/users': 'Users and Roles',
-};
 
 export function AppSidebarHeader({
     breadcrumbs = [],
@@ -33,25 +14,36 @@ export function AppSidebarHeader({
 }) {
     const page = usePage<{
         auth: {
-            user: {
-                role: 'owner' | 'admin' | 'sales';
-            };
+            permissions: string[];
         };
     }>();
     const { auth } = page.props;
     const { toggleSidebar } = useSidebar();
-    const [viewingAs, setViewingAs] = useState(auth.user.role);
     const path = new URL(
         page.url,
         typeof window === 'undefined'
             ? 'http://localhost'
             : window.location.origin,
     ).pathname;
-    const pageTitle =
-        pageTitles[path] ?? breadcrumbs[breadcrumbs.length - 1]?.title;
-    const routeBreadcrumbs: BreadcrumbItemType[] = pageTitle
-        ? [{ title: pageTitle, href: path }]
-        : [];
+    const route = getAppNavGroups(auth.permissions)
+        .flatMap((group) => group.items.map((item) => ({ group, item })))
+        .find(
+            ({ item }) =>
+                new URL(
+                    toUrl(item.href),
+                    typeof window === 'undefined'
+                        ? 'http://localhost'
+                        : window.location.origin,
+                ).pathname === path,
+        );
+    const routeBreadcrumbs: BreadcrumbItemType[] = route
+        ? [
+              { title: route.group.title, href: route.item.href },
+              { title: route.item.title, href: route.item.href },
+          ]
+        : breadcrumbs.length > 0
+          ? breadcrumbs
+          : [];
 
     return (
         <header className="carpet-topbar flex shrink-0 items-center transition-[width,height] ease-linear">
@@ -76,28 +68,6 @@ export function AppSidebarHeader({
                     placeholder="Search piece ID or barcode"
                     aria-label="Search piece ID or barcode"
                 />
-            </label>
-            <label className="carpet-role-view">
-                <span>Viewing as</span>
-                <select
-                    value={viewingAs}
-                    onChange={(event) => {
-                        const selectedRole = event.target.value;
-
-                        if (
-                            selectedRole === 'owner' ||
-                            selectedRole === 'admin' ||
-                            selectedRole === 'sales'
-                        ) {
-                            setViewingAs(selectedRole);
-                        }
-                    }}
-                    aria-label="Viewing as"
-                >
-                    <option value="owner">Owner</option>
-                    <option value="admin">Admin</option>
-                    <option value="sales">Sales</option>
-                </select>
             </label>
         </header>
     );

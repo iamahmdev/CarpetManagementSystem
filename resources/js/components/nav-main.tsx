@@ -7,18 +7,9 @@ import {
     SidebarMenuItem,
     useSidebar,
 } from '@/components/ui/sidebar';
-import { DemoIcon, type DemoIconName } from '@/components/demo-icon';
+import { DemoIcon } from '@/components/demo-icon';
+import type { NavGroup } from '@/components/app-nav-groups';
 import { useCurrentUrl } from '@/hooks/use-current-url';
-import type { NavItem } from '@/types';
-
-type SidebarNavItem = Omit<NavItem, 'icon'> & {
-    icon: DemoIconName;
-};
-
-export type NavGroup = {
-    title: string;
-    items: SidebarNavItem[];
-};
 
 export function NavMain({ groups }: { groups: NavGroup[] }) {
     const { currentUrl, isCurrentUrl } = useCurrentUrl();
