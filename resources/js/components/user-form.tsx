@@ -70,7 +70,7 @@ export default function UserForm({ action, method, roles, user }: Props) {
                                 name="role"
                                 required
                                 defaultValue={user?.role ?? 'sales'}
-                                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                                className="h-9 w-full rounded-md border border-input bg-demo-card px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                             >
                                 {roles.map((role) => (
                                     <option key={role} value={role}>

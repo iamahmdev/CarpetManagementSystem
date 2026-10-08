@@ -1,4 +1,4 @@
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import type { User } from '@/types';
 
 export function UserInfo({
@@ -10,9 +10,8 @@ export function UserInfo({
 }) {
     return (
         <>
-            <Avatar className="h-8 w-8 overflow-hidden rounded-full">
-                <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="rounded-lg bg-neutral-200 text-black dark:bg-neutral-700 dark:text-white">
+            <Avatar className="carpet-avatar h-8 w-8 overflow-hidden rounded-full">
+                <AvatarFallback className="carpet-avatar">
                     {user.name.trim().charAt(0).toUpperCase()}
                 </AvatarFallback>
             </Avatar>

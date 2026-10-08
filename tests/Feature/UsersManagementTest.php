@@ -157,7 +157,9 @@ test('sales users cannot access user management', function () {
         ->assertForbidden()
         ->assertInertia(fn (Assert $page) => $page
             ->component('errors/page')
-            ->where('status', 403),
+            ->where('status', 403)
+            ->where('role', 'Sales')
+            ->where('pageLabel', 'Users and Roles'),
         );
 
     $this->get(route('users.create'))->assertForbidden();
