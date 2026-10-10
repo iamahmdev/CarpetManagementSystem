@@ -13,6 +13,7 @@ type PageProps = {
 
 const permissionLabels: Record<string, string> = {
     'users.manage': 'Manage users and roles',
+    'reports.receivables': 'Receivables report',
 };
 
 export default function Profile() {

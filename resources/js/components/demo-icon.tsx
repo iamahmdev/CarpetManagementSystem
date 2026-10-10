@@ -10,6 +10,7 @@ export type DemoIconName =
     | 'stock'
     | 'profitab'
     | 'profit'
+    | 'receivables'
     | 'profile'
     | 'locations'
     | 'roles'
@@ -88,6 +89,12 @@ export function DemoIcon({
                 </>
             )}
             {name === 'profit' && <path d="M3 17l6-6 4 4 8-8M15 7h6v6" />}
+            {name === 'receivables' && (
+                <>
+                    <rect x="3" y="5" width="18" height="14" rx="2" />
+                    <path d="M7 9h10M7 13h4M16 13h1" />
+                </>
+            )}
             {name === 'profile' && (
                 <>
                     <circle cx="12" cy="8" r="4" />

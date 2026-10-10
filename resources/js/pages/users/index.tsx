@@ -17,6 +17,8 @@ type PaginatorLink = {
 
 type Props = {
     auth: Auth;
+    permissions: string[];
+    rolePermissions: Record<string, string[]>;
     users: {
         data: UserListItem[];
         links: PaginatorLink[];
@@ -24,7 +26,8 @@ type Props = {
 };
 
 export default function UsersIndex() {
-    const { auth, users } = usePage<Props>().props;
+    const { auth, users, permissions, rolePermissions } =
+        usePage<Props>().props;
     const canManageUsers = auth.permissions.includes('users.manage');
     const canDeleteUsers = canManageUsers && auth.user.role === 'owner';
 
@@ -43,6 +46,55 @@ export default function UsersIndex() {
                         </Button>
                     )}
                 </div>
+
+                <section className="rounded-lg border p-4">
+                    <h2 className="mb-3 text-base font-semibold">
+                        Role permissions
+                    </h2>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-muted/50">
+                                <tr>
+                                    <th className="px-3 py-2">Permission</th>
+                                    {Object.keys(rolePermissions).map(
+                                        (role) => (
+                                            <th
+                                                className="px-3 py-2 capitalize"
+                                                key={role}
+                                            >
+                                                {role}
+                                            </th>
+                                        ),
+                                    )}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {permissions.map((permission) => (
+                                    <tr className="border-t" key={permission}>
+                                        <td className="px-3 py-2">
+                                            {permission ===
+                                            'reports.receivables'
+                                                ? 'Receivables report'
+                                                : permission}
+                                        </td>
+                                        {Object.entries(rolePermissions).map(
+                                            ([role, grants]) => (
+                                                <td
+                                                    className="px-3 py-2"
+                                                    key={`${permission}-${role}`}
+                                                >
+                                                    {grants.includes(permission)
+                                                        ? 'Yes'
+                                                        : '—'}
+                                                </td>
+                                            ),
+                                        )}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
 
                 <div className="overflow-x-auto rounded-lg border">
                     <table className="w-full text-left text-sm">

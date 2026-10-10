@@ -1,7 +1,11 @@
 <?php
 
 use App\Http\Controllers\CarpetController;
+use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\LocationController;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\ReceivablesController;
+use App\Http\Controllers\SaleController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -49,6 +53,40 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:catalog.manage')
         ->name('carpets.store');
 
+    Route::middleware('permission:sales.create')->group(function () {
+        Route::get('new-sale', [SaleController::class, 'create'])->name('new-sale.index');
+        Route::post('sales', [SaleController::class, 'store'])->name('sales.store');
+        Route::post('sales/{sale}/payments', [PaymentController::class, 'storeForSale'])->name('sales.payments.store');
+    });
+
+    Route::middleware('permission:sales.view')->group(function () {
+        Route::get('sales', [SaleController::class, 'index'])->name('sales-history.index');
+        Route::get('sales/{sale}', [SaleController::class, 'show'])->name('sales.show');
+        Route::get('customers', [CustomerController::class, 'index'])->name('customers.index');
+        Route::get('customers/{customer}', [CustomerController::class, 'show'])->name('customers.show');
+        Route::get('receipts/{receipt}', [PaymentController::class, 'receipt'])->name('receipts.show');
+        Route::post('receipts/{receipt}/print', [PaymentController::class, 'printReceipt'])->name('receipts.print');
+        Route::post('customers/{customer}/statement-print', [CustomerController::class, 'printStatement'])
+            ->name('customers.statement-print');
+    });
+
+    Route::middleware('permission:sales.create')->group(function () {
+        Route::post('customers', [CustomerController::class, 'store'])->name('customers.store');
+        Route::post('customers/{customer}/payments', [PaymentController::class, 'storeForCustomer'])
+            ->name('customers.payments.store');
+    });
+
+    Route::post('receipts/{receipt}/reverse', [PaymentController::class, 'reverse'])
+        ->middleware('permission:sales.void')
+        ->name('receipts.reverse');
+    Route::post('sales/{sale}/void', [SaleController::class, 'void'])
+        ->middleware('permission:sales.void')
+        ->name('sales.void');
+
+    Route::get('receivables', [ReceivablesController::class, 'index'])
+        ->middleware('permission:reports.receivables')
+        ->name('receivables.index');
+
     $placeholderPages = [
         [
             'path' => 'pieces',
@@ -67,24 +105,6 @@ Route::middleware('auth')->group(function () {
             'name' => 'transfers.index',
             'title' => 'Transfers',
             'subtitle' => 'Move pieces from a warehouse to its display. Stock only changes location when the other side confirms.',
-        ],
-        [
-            'path' => 'new-sale',
-            'name' => 'new-sale.index',
-            'title' => 'New sale',
-            'subtitle' => 'Pick the display, add pieces by ID, take payment, and print the invoice.',
-        ],
-        [
-            'path' => 'sales',
-            'name' => 'sales-history.index',
-            'title' => 'Sales history',
-            'subtitle' => 'All invoices across the displays.',
-        ],
-        [
-            'path' => 'customers',
-            'name' => 'customers.index',
-            'title' => 'Customers',
-            'subtitle' => 'Buyers, their purchases, and any balance still due.',
         ],
         [
             'path' => 'stock-report',

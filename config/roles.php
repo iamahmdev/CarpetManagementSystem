@@ -8,6 +8,10 @@ return [
         'locations.manage',
         'catalog.view',
         'catalog.manage',
+        'sales.create',
+        'sales.view',
+        'sales.void',
+        'reports.receivables',
     ],
 
     'admin' => [
@@ -15,10 +19,16 @@ return [
         'users.manage',
         'catalog.view',
         'catalog.manage',
+        'sales.create',
+        'sales.view',
+        'sales.void',
+        'reports.receivables',
     ],
 
     'sales' => [
         'catalog.view',
+        'sales.create',
+        'sales.view',
     ],
 
 ];

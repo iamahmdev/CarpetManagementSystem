@@ -60,16 +60,20 @@ export function getAppNavGroups(permissions: string[]): NavGroup[] {
                     href: '/new-sale',
                     icon: 'sale',
                 },
-                {
-                    title: 'Sales History',
-                    href: '/sales',
-                    icon: 'history',
-                },
-                {
-                    title: 'Customers',
-                    href: '/customers',
-                    icon: 'customers',
-                },
+                ...(permissions.includes('sales.view')
+                    ? [
+                          {
+                              title: 'Sales History',
+                              href: '/sales',
+                              icon: 'history' as const,
+                          },
+                          {
+                              title: 'Customers',
+                              href: '/customers',
+                              icon: 'customers' as const,
+                          },
+                      ]
+                    : []),
             ],
         },
         {
@@ -90,6 +94,15 @@ export function getAppNavGroups(permissions: string[]): NavGroup[] {
                     href: '/profit',
                     icon: 'profit',
                 },
+                ...(permissions.includes('reports.receivables')
+                    ? [
+                          {
+                              title: 'Receivables',
+                              href: '/receivables',
+                              icon: 'receivables' as const,
+                          },
+                      ]
+                    : []),
             ],
         },
         {

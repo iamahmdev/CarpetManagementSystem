@@ -21,6 +21,8 @@ class UserController extends Controller
                 ->orderBy('name')
                 ->paginate(15)
                 ->withQueryString(),
+            'permissions' => config('permissions'),
+            'rolePermissions' => config('roles'),
         ]);
     }
 

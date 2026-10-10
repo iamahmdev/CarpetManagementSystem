@@ -147,19 +147,31 @@ test('each configured permission is granted to the correct roles', function () {
         'locations.manage',
         'catalog.view',
         'catalog.manage',
+        'sales.create',
+        'sales.view',
+        'sales.void',
+        'reports.receivables',
     ])
         ->and(config('roles.owner'))->toBe([
             'users.manage',
             'locations.manage',
             'catalog.view',
             'catalog.manage',
+            'sales.create',
+            'sales.view',
+            'sales.void',
+            'reports.receivables',
         ])
         ->and(config('roles.admin'))->toBe([
             'users.manage',
             'catalog.view',
             'catalog.manage',
+            'sales.create',
+            'sales.view',
+            'sales.void',
+            'reports.receivables',
         ])
-        ->and(config('roles.sales'))->toBe(['catalog.view']);
+        ->and(config('roles.sales'))->toBe(['catalog.view', 'sales.create', 'sales.view']);
 });
 
 test('sales users cannot access user management', function () {

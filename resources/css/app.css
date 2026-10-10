@@ -485,6 +485,274 @@
     font-size: 16px;
 }
 
+.ledger-page {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 1240px;
+    min-width: 0;
+    margin-inline: auto;
+}
+
+.ledger-actions,
+.ledger-inline-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.ledger-card {
+    margin-top: 16px;
+}
+
+.ledger-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.ledger-metrics .metric {
+    min-width: 0;
+}
+
+.ledger-metrics .metric .v {
+    overflow-wrap: anywhere;
+    font-size: 22px;
+}
+
+.ledger-danger {
+    color: var(--red) !important;
+}
+
+.ledger-validation-error {
+    margin-bottom: 12px;
+    border: 1px solid var(--red);
+    border-radius: 8px;
+    background: var(--red-t);
+    padding: 10px 12px;
+    color: var(--red);
+}
+
+.ledger-link {
+    color: var(--indigo);
+    text-decoration: none;
+}
+
+.ledger-link:hover {
+    text-decoration: underline;
+}
+
+.ledger-note {
+    max-width: 240px;
+    font-size: 12px;
+    white-space: normal;
+}
+
+.ledger-filters {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(150px, 1fr));
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.ledger-filters select,
+.ledger-field select,
+.ledger-sale-form select {
+    width: 100%;
+    min-height: 38px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+    padding: 8px 10px;
+    color: var(--ink);
+    font-size: 14px;
+}
+
+.ledger-dialog {
+    border-radius: 14px;
+}
+
+.ledger-dialog-head {
+    min-height: 58px;
+    justify-content: center;
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px;
+}
+
+.ledger-dialog-body {
+    max-height: min(72vh, 680px);
+    overflow-y: auto;
+    padding: 18px 20px 6px;
+}
+
+.ledger-dialog-footer {
+    border-top: 1px solid var(--border);
+    padding: 14px 20px;
+}
+
+.ledger-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.ledger-field {
+    min-width: 0;
+    margin-bottom: 12px;
+}
+
+.ledger-field label,
+.ledger-reverse-form label {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.ledger-field input,
+.ledger-reverse-form input {
+    width: 100%;
+}
+
+.ledger-allocation {
+    margin-top: 8px;
+}
+
+.ledger-allocation-title,
+.ledger-totals > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 0;
+}
+
+.ledger-allocation-title span,
+.ledger-totals span {
+    color: var(--muted);
+}
+
+.ledger-allocation td input {
+    width: 120px;
+    margin-left: auto;
+}
+
+.ledger-reverse-form {
+    min-width: 240px;
+    padding: 8px;
+}
+
+.ledger-reverse-form button {
+    margin-top: 8px;
+}
+
+.ledger-sale-form {
+    display: grid;
+    gap: 16px;
+}
+
+.ledger-sale-form .card-head {
+    margin-top: 20px;
+}
+
+.ledger-customer-select {
+    display: flex;
+    gap: 8px;
+}
+
+.ledger-customer-select select {
+    min-width: 0;
+}
+
+.ledger-sale-form td input {
+    max-width: 180px;
+    margin-left: auto;
+}
+
+.ledger-totals {
+    width: min(100%, 380px);
+    margin: 16px 0 0 auto;
+}
+
+.ledger-total {
+    border-top: 1px solid var(--border);
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.ledger-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 12px;
+}
+
+.ledger-invoice-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.ledger-invoice-head h2 {
+    font-size: 20px;
+}
+
+.ledger-invoice-head p,
+.ledger-invoice-customer span {
+    color: var(--muted);
+}
+
+.ledger-invoice-customer {
+    display: grid;
+    gap: 4px;
+    text-align: right;
+}
+
+.ledger-receipt-details {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 20px;
+    margin: 20px 0;
+}
+
+.ledger-receipt-details dt {
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.ledger-receipt-details dd {
+    font-weight: 600;
+}
+
+.ledger-receipt-balance {
+    margin-top: 16px;
+    text-align: right;
+}
+
+.ledger-reversal-mark {
+    border: 3px solid var(--red);
+    color: var(--red);
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    margin: 12px 0;
+    padding: 8px;
+    text-align: center;
+    transform: rotate(-3deg);
+}
+
+.print-only {
+    display: none;
+}
+
+.ledger-print-heading {
+    margin-bottom: 20px;
+}
+
+.ledger-form-actions .demo-primary-button {
+    min-width: 140px;
+}
+
 .carpets-card {
     width: 100%;
     min-width: 0;
@@ -912,11 +1180,59 @@
     .demo-profile-row {
         flex-direction: column;
     }
+
+    .ledger-metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .ledger-form-grid,
+    .ledger-filters,
+    .ledger-receipt-details {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .ledger-invoice-head {
+        flex-wrap: wrap;
+    }
+
+    .ledger-invoice-customer {
+        text-align: left;
+    }
 }
 
 @media print {
-    body > *:not(#modal-root) {
+    body > *:not(#app):not(#modal-root) {
         display: none !important;
+    }
+
+    #app .carpet-main > :not(.print-surface) {
+        display: none !important;
+    }
+
+    #app .carpet-sidebar-shell aside,
+    #app .carpet-sidebar-shell [data-sidebar] {
+        display: none !important;
+    }
+
+    .print-surface {
+        display: block !important;
+        width: 100% !important;
+        max-width: none !important;
+        padding: 0 !important;
+        color: #000 !important;
+    }
+
+    .print-only {
+        display: block !important;
+    }
+
+    .print-surface .card {
+        border: 0;
+        box-shadow: none;
+    }
+
+    .tbl-wrap {
+        overflow: visible !important;
     }
 }
 
@@ -1455,7 +1771,7 @@ tr.click:hover td {
 }
 
 @media print {
-    body > *:not(#modal-root) {
+    body > *:not(#app):not(#modal-root) {
         display: none !important;
     }
 
