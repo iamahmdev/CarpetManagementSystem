@@ -24,5 +24,6 @@ class DatabaseSeeder extends Seeder
 
         $this->call(LocationSeeder::class);
         $this->call(CarpetSeeder::class);
+        $this->call(ContainerSeeder::class);
     }
 }

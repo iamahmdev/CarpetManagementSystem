@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @property-read Location|null $adjacentWarehouse
@@ -57,5 +58,11 @@ class Location extends Model
     public function adjacentWarehouse(): BelongsTo
     {
         return $this->belongsTo(self::class, 'parent_id');
+    }
+
+    /** @return HasMany<Container, $this> */
+    public function containers(): HasMany
+    {
+        return $this->hasMany(Container::class, 'destination_id');
     }
 }

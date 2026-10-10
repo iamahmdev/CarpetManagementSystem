@@ -1,7 +1,10 @@
 <?php
 
 use App\Http\Controllers\CarpetController;
+use App\Http\Controllers\ContainerController;
+use App\Http\Controllers\ContainerReportController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PieceController;
@@ -14,7 +17,7 @@ use Inertia\Inertia;
 Route::inertia('/', 'welcome')->name('home');
 
 Route::middleware('auth')->group(function () {
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
+    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 });
 
 Route::middleware('auth')->group(function () {
@@ -60,6 +63,15 @@ Route::middleware('auth')->group(function () {
     Route::get('pieces/search', [PieceController::class, 'search'])
         ->name('pieces.search');
 
+    Route::middleware('permission:containers.manage')->group(function () {
+        Route::get('containers', [ContainerController::class, 'index'])
+            ->name('containers.index');
+        Route::post('containers/{container}/arrive', [ContainerController::class, 'markArrived'])
+            ->name('containers.arrive');
+        Route::post('containers/{container}/receive', [ContainerController::class, 'receive'])
+            ->name('containers.receive');
+    });
+
     Route::middleware('permission:sales.create')->group(function () {
         Route::get('pieces/lookup', [SaleController::class, 'lookupPiece'])->name('pieces.lookup');
         Route::get('new-sale', [SaleController::class, 'create'])->name('new-sale.index');
@@ -102,13 +114,11 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:reports.profit')
         ->name('profit-report.index');
 
+    Route::get('container-report', [ContainerReportController::class, 'index'])
+        ->middleware('permission:reports.profit')
+        ->name('container-report.index');
+
     $placeholderPages = [
-        [
-            'path' => 'containers',
-            'name' => 'containers.index',
-            'title' => 'Containers',
-            'subtitle' => 'Imports from Iran. Receiving a container creates one record per carpet, each with its own ID and label.',
-        ],
         [
             'path' => 'transfers',
             'name' => 'transfers.index',
@@ -120,12 +130,6 @@ Route::middleware('auth')->group(function () {
             'name' => 'stock-report.index',
             'title' => 'Stock by location',
             'subtitle' => 'What is on hand right now, at each warehouse and display.',
-        ],
-        [
-            'path' => 'container-report',
-            'name' => 'container-report.index',
-            'title' => 'Container profitability',
-            'subtitle' => 'Which imports are paying back, based on real sales and landed cost.',
         ],
     ];
 

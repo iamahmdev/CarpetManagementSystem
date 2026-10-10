@@ -75,9 +75,12 @@ export default function UsersIndex() {
                                             {{
                                                 'stock.view':
                                                     'View pieces and stock',
-                                                'costs.view': 'View costs',
+                                                'containers.manage':
+                                                    'Receive containers',
+                                                'costs.view':
+                                                    'See cost prices',
                                                 'reports.profit':
-                                                    'Profit report',
+                                                    'Profit reports',
                                                 'reports.receivables':
                                                     'Receivables report',
                                             }[permission] ?? permission}

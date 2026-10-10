@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Carpet extends Model
 {
@@ -22,5 +23,10 @@ class Carpet extends Model
         return [
             'price' => 'integer',
         ];
+    }
+
+    public function containerItems(): HasMany
+    {
+        return $this->hasMany(ContainerItem::class);
     }
 }
