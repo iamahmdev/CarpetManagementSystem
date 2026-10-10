@@ -34,16 +34,14 @@ test('unknown routes render the Inertia not found page', function () {
         );
 });
 
-test('unimplemented navigation items render only their placeholder headers', function () {
+test('unimplemented navigation items render their placeholder headers', function () {
     $user = User::factory()->create(['role' => UserRole::SALES]);
     $pages = [
-        '/containers' => 'Containers',
         '/transfers' => 'Transfers',
         '/new-sale' => 'New sale',
         '/sales' => 'Sales history',
         '/customers' => 'Customers',
         '/stock-report' => 'Stock by location',
-        '/container-report' => 'Container profitability',
         '/profit' => 'Profit',
     ];
 
@@ -75,4 +73,7 @@ test('unimplemented navigation items render only their placeholder headers', fun
                 ->has('subtitle'));
         }
     }
+
+    $this->actingAs($user)->get('/containers')->assertForbidden();
+    $this->actingAs($user)->get('/container-report')->assertForbidden();
 });

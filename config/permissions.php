@@ -7,6 +7,7 @@ return [
     'catalog.view',
     'catalog.manage',
     'stock.view',
+    'containers.manage',
     'costs.view',
     'sales.create',
     'sales.view',

@@ -38,6 +38,7 @@ class PieceController extends Controller
                 ->with([
                     'carpet',
                     'location',
+                    'container',
                     'movements.user',
                     'movements.fromLocation',
                     'movements.toLocation',
@@ -129,7 +130,7 @@ class PieceController extends Controller
             'landed_cost' => in_array('costs.view', $permissions, true)
                 ? $piece->landed_cost
                 : null,
-            'container' => $piece->container_number ?? 'None',
+            'container' => $piece->container?->number ?? $piece->container_number ?? 'None',
             'status' => $piece->status,
             'can_add_to_sale' => in_array('sales.create', $permissions, true)
                 && $piece->status === 'in_stock'

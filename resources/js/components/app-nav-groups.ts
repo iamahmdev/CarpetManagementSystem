@@ -44,11 +44,15 @@ export function getAppNavGroups(permissions: string[]): NavGroup[] {
                           },
                       ]
                     : []),
-                {
-                    title: 'Containers',
-                    href: '/containers',
-                    icon: 'containers',
-                },
+                ...(permissions.includes('containers.manage')
+                    ? [
+                          {
+                              title: 'Containers',
+                              href: '/containers',
+                              icon: 'containers' as const,
+                          },
+                      ]
+                    : []),
                 {
                     title: 'Transfers',
                     href: '/transfers',
@@ -88,16 +92,20 @@ export function getAppNavGroups(permissions: string[]): NavGroup[] {
                     href: '/stock-report',
                     icon: 'stock',
                 },
-                {
-                    title: 'Container Profitability',
-                    href: '/container-report',
-                    icon: 'profitab',
-                },
-                {
-                    title: 'Profit',
-                    href: '/profit',
-                    icon: 'profit',
-                },
+                ...(permissions.includes('reports.profit')
+                    ? [
+                          {
+                              title: 'Container Profitability',
+                              href: '/container-report',
+                              icon: 'profitab' as const,
+                          },
+                          {
+                              title: 'Profit',
+                              href: '/profit',
+                              icon: 'profit' as const,
+                          },
+                      ]
+                    : []),
                 ...(permissions.includes('reports.receivables')
                     ? [
                           {

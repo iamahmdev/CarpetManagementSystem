@@ -59,6 +59,11 @@ class Piece extends Model
         return $this->belongsTo(Location::class);
     }
 
+    public function container(): BelongsTo
+    {
+        return $this->belongsTo(Container::class);
+    }
+
     public function movements(): HasMany
     {
         return $this->hasMany(PieceMovement::class);
