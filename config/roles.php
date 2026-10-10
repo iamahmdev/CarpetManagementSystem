@@ -8,6 +8,8 @@ return [
         'locations.manage',
         'catalog.view',
         'catalog.manage',
+        'stock.view',
+        'costs.view',
         'sales.create',
         'sales.view',
         'sales.void',
@@ -20,6 +22,7 @@ return [
         'users.manage',
         'catalog.view',
         'catalog.manage',
+        'stock.view',
         'sales.create',
         'sales.view',
         'sales.void',
@@ -28,6 +31,7 @@ return [
 
     'sales' => [
         'catalog.view',
+        'stock.view',
         'sales.create',
         'sales.view',
     ],

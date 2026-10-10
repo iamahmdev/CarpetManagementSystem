@@ -37,7 +37,6 @@ test('unknown routes render the Inertia not found page', function () {
 test('unimplemented navigation items render only their placeholder headers', function () {
     $user = User::factory()->create(['role' => UserRole::SALES]);
     $pages = [
-        '/pieces' => 'Pieces',
         '/containers' => 'Containers',
         '/transfers' => 'Transfers',
         '/new-sale' => 'New sale',

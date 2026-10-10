@@ -169,7 +169,7 @@ test('users without catalog view permission do not receive the carpets sidebar p
     $this->actingAs($sales)
         ->get(route('dashboard'))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('auth.permissions', ['catalog.view', 'sales.create', 'sales.view']),
+            ->where('auth.permissions', ['catalog.view', 'stock.view', 'sales.create', 'sales.view']),
         );
 
     config()->set('roles.sales', []);

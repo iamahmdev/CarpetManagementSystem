@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreCarpetRequest;
 use App\Models\Carpet;
+use App\Models\Piece;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -26,7 +27,10 @@ class CarpetController extends Controller
                     'weave' => $carpet->weave,
                     'size' => $carpet->size,
                     'color' => $carpet->color,
-                    'in_stock_count' => 0,
+                    'in_stock_count' => Piece::query()
+                        ->where('carpet_id', $carpet->id)
+                        ->where('status', 'in_stock')
+                        ->count(),
                     'price' => $carpet->price,
                 ]),
             'canManage' => in_array(

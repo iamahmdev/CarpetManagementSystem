@@ -72,10 +72,15 @@ export default function UsersIndex() {
                                 {permissions.map((permission) => (
                                     <tr className="border-t" key={permission}>
                                         <td className="px-3 py-2">
-                                            {permission ===
-                                            'reports.receivables'
-                                                ? 'Receivables report'
-                                                : permission}
+                                            {{
+                                                'stock.view':
+                                                    'View pieces and stock',
+                                                'costs.view': 'View costs',
+                                                'reports.profit':
+                                                    'Profit report',
+                                                'reports.receivables':
+                                                    'Receivables report',
+                                            }[permission] ?? permission}
                                         </td>
                                         {Object.entries(rolePermissions).map(
                                             ([role, grants]) => (

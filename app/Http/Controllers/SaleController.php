@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Carpet;
 use App\Models\Customer;
 use App\Models\Location;
+use App\Models\Piece;
 use App\Models\Sale;
 use App\Services\PaymentService;
+use App\Services\PieceService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -51,7 +52,22 @@ class SaleController extends Controller
                 ->where('active', true)
                 ->orderBy('name')
                 ->get(['id', 'name']),
-            'carpets' => Carpet::query()->orderBy('created_at')->orderBy('id')->get(['id', 'sku', 'name', 'price']),
+            'pieces' => Piece::query()
+                ->with(['carpet', 'location'])
+                ->where('status', 'in_stock')
+                ->whereHas('location', fn ($location) => $location->where('type', 'display')->where('active', true))
+                ->orderBy('id')
+                ->get()
+                ->map(fn (Piece $piece): array => [
+                    'id' => $piece->id,
+                    'code' => $piece->code,
+                    'carpet' => $piece->carpet->name,
+                    'sku' => $piece->carpet->sku,
+                    'size' => $piece->carpet->size,
+                    'location_id' => $piece->location_id,
+                    'price' => $piece->effectivePrice(),
+                ]),
+            'selected_piece_id' => $request->integer('piece_id') ?: null,
             'payment_methods' => [
                 ['value' => 'cash', 'label' => 'Cash'],
                 ['value' => 'bank_transfer', 'label' => 'Bank transfer'],
@@ -62,7 +78,7 @@ class SaleController extends Controller
         ]);
     }
 
-    public function store(Request $request, PaymentService $payments): RedirectResponse
+    public function store(Request $request, PaymentService $payments, PieceService $pieces): RedirectResponse
     {
         $data = $request->validate([
             'customer_id' => ['nullable', 'integer', 'exists:customers,id'],
@@ -75,12 +91,33 @@ class SaleController extends Controller
             'paid_now' => ['nullable', 'integer'],
             'method' => ['required', Rule::in(PaymentService::METHODS)],
             'items' => ['required', 'array', 'min:1'],
-            'items.*.carpet_id' => ['required', 'integer', 'exists:carpets,id'],
+            'items.*.piece_id' => ['required', 'integer', 'distinct', 'exists:pieces,id'],
             'items.*.unit_price' => ['required', 'integer', 'min:0'],
         ]);
 
-        return DB::transaction(function () use ($data, $request, $payments): RedirectResponse {
-            $catalog = Carpet::query()->whereIn('id', collect($data['items'])->pluck('carpet_id'))->get()->keyBy('id');
+        return DB::transaction(function () use ($data, $request, $payments, $pieces): RedirectResponse {
+            $pieceIds = collect($data['items'])->pluck('piece_id');
+            $selectedPieces = Piece::query()
+                ->with('carpet')
+                ->whereIn('id', $pieceIds)
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+
+            if ($selectedPieces->count() !== $pieceIds->unique()->count()) {
+                return back()->withErrors(['items' => 'One or more selected pieces are no longer available.'])->withInput();
+            }
+
+            foreach ($selectedPieces as $piece) {
+                if (
+                    $piece->status !== 'in_stock'
+                    || $piece->location_id !== (int) $data['location_id']
+                    || $piece->location()->where('type', 'display')->where('active', true)->doesntExist()
+                ) {
+                    return back()->withErrors(['items' => 'Only in-stock pieces at the selected display can be sold.'])->withInput();
+                }
+            }
+
             $subtotal = (int) collect($data['items'])->sum('unit_price');
             $discount = min(max(0, (int) ($data['discount'] ?? 0)), $subtotal);
             $total = max(0, $subtotal - $discount);
@@ -119,13 +156,16 @@ class SaleController extends Controller
                 'sold_at' => now(),
             ]);
             foreach ($data['items'] as $item) {
-                $carpet = $catalog->get($item['carpet_id']);
+                $piece = $selectedPieces->get((int) $item['piece_id']);
+                $carpet = $piece->carpet;
                 $sale->items()->create([
+                    'piece_id' => $piece->id,
                     'carpet_id' => $carpet->id,
                     'sku' => $carpet->sku,
                     'name' => $carpet->name,
                     'unit_price' => (int) $item['unit_price'],
                 ]);
+                $pieces->changeStatus($piece, 'sale', 'sold', $piece->location, $sale->invoice_number, $request->user());
             }
 
             if ($paid > 0) {
@@ -142,7 +182,7 @@ class SaleController extends Controller
             abort(403);
         }
 
-        $sale->load(['customer', 'location', 'items', 'payments.receiver', 'payments.reverser']);
+        $sale->load(['customer', 'location', 'items.piece', 'payments.receiver', 'payments.reverser']);
 
         return Inertia::render('sales/show', [
             'sale' => [
@@ -158,6 +198,7 @@ class SaleController extends Controller
                 'balance' => $sale->balanceDue(),
                 'status' => $sale->paymentStatus(),
                 'items' => $sale->items->map(fn ($item): array => [
+                    'piece_code' => $item->piece?->code,
                     'sku' => $item->sku,
                     'name' => $item->name,
                     'unit_price' => $item->unit_price,
@@ -177,16 +218,35 @@ class SaleController extends Controller
         ]);
     }
 
-    public function void(Request $request, Sale $sale): RedirectResponse
+    public function void(Request $request, Sale $sale, PieceService $pieces): RedirectResponse
     {
-        if ($sale->activePayments()->exists()) {
-            return back()->withErrors([
-                'sale' => 'This invoice has active payments. Reverse its payment receipt before voiding it.',
-            ]);
-        }
+        return DB::transaction(function () use ($request, $sale, $pieces): RedirectResponse {
+            $lockedSale = Sale::query()->lockForUpdate()->findOrFail($sale->id);
+            if ($lockedSale->activePayments()->exists()) {
+                return back()->withErrors([
+                    'sale' => 'This invoice has active payments. Reverse its payment receipt before voiding it.',
+                ]);
+            }
+            if ($lockedSale->status === 'void') {
+                return back()->withErrors(['sale' => 'This invoice has already been voided.']);
+            }
 
-        $sale->update(['status' => 'void']);
+            $lockedSale->load('items.piece');
+            foreach ($lockedSale->items as $item) {
+                if ($item->piece) {
+                    $pieces->changeStatus(
+                        $item->piece,
+                        'sale_void',
+                        'in_stock',
+                        $lockedSale->location,
+                        $lockedSale->invoice_number,
+                        $request->user(),
+                    );
+                }
+            }
+            $lockedSale->update(['status' => 'void']);
 
-        return to_route('sales-history.index');
+            return to_route('sales-history.index');
+        });
     }
 }

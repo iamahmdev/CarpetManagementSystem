@@ -18,33 +18,57 @@ import { formatMoney } from '@/lib/ledger';
 type Props = {
     customers: { id: number; name: string }[];
     locations: { id: number; name: string }[];
-    carpets: { id: number; sku: string; name: string; price: number }[];
+    pieces: {
+        id: number;
+        code: string;
+        sku: string;
+        carpet: string;
+        size: string;
+        location_id: number;
+        price: number;
+    }[];
     payment_methods: { value: string; label: string }[];
     selected_customer_id: number | null;
+    selected_piece_id: number | null;
 };
 
 export default function SalesCreate({
     customers,
     locations,
-    carpets,
+    pieces,
     payment_methods,
     selected_customer_id,
+    selected_piece_id,
 }: Props) {
     const [customerOpen, setCustomerOpen] = useState(false);
+    const selectedPiece = pieces.find(
+        (piece) => piece.id === selected_piece_id,
+    );
     const form = useForm<{
         customer_id: string;
         location_id: string;
         discount: string;
         paid_now: string;
         method: string;
-        items: { carpet_id: string; unit_price: string }[];
+        items: { piece_id: string; unit_price: string }[];
     }>({
         customer_id: selected_customer_id ? String(selected_customer_id) : '',
-        location_id: locations[0] ? String(locations[0].id) : '',
+        location_id: selectedPiece
+            ? String(selectedPiece.location_id)
+            : locations[0]
+              ? String(locations[0].id)
+              : '',
         discount: '0',
         paid_now: '',
         method: 'cash',
-        items: [],
+        items: selectedPiece
+            ? [
+                  {
+                      piece_id: String(selectedPiece.id),
+                      unit_price: String(selectedPiece.price),
+                  },
+              ]
+            : [],
     });
     const customerForm = useForm({
         name: '',
@@ -80,25 +104,29 @@ export default function SalesCreate({
     }
 
     function addItem() {
-        const carpet = carpets[0];
-        if (!carpet) return;
+        const piece = pieces.find(
+            (row) =>
+                row.location_id === Number(form.data.location_id) &&
+                !form.data.items.some((item) => item.piece_id === String(row.id)),
+        );
+        if (!piece) return;
         form.setData('items', [
             ...form.data.items,
-            { carpet_id: String(carpet.id), unit_price: String(carpet.price) },
+            { piece_id: String(piece.id), unit_price: String(piece.price) },
         ]);
     }
 
     function updateItem(
         index: number,
-        field: 'carpet_id' | 'unit_price',
+        field: 'piece_id' | 'unit_price',
         value: string,
     ) {
         const items = form.data.items.map((item, itemIndex) =>
             itemIndex === index ? { ...item, [field]: value } : item,
         );
-        if (field === 'carpet_id') {
-            const carpet = carpets.find((row) => String(row.id) === value);
-            if (carpet) items[index].unit_price = String(carpet.price);
+        if (field === 'piece_id') {
+            const piece = pieces.find((row) => String(row.id) === value);
+            if (piece) items[index].unit_price = String(piece.price);
         }
         form.setData('items', items);
     }
@@ -111,7 +139,7 @@ export default function SalesCreate({
             discount: data.discount.trim(),
             paid_now: data.paid_now.trim(),
             items: data.items.map((item) => ({
-                carpet_id: item.carpet_id,
+                piece_id: item.piece_id,
                 unit_price: item.unit_price.trim(),
             })),
         }));
@@ -126,7 +154,7 @@ export default function SalesCreate({
                     <div>
                         <h1>New sale</h1>
                         <p className="sub">
-                            Pick the display, add carpets, take payment, and
+                            Pick the display, add pieces, take payment, and
                             print the invoice.
                         </p>
                     </div>
@@ -175,12 +203,13 @@ export default function SalesCreate({
                                     id="sale-location"
                                     required
                                     value={form.data.location_id}
-                                    onChange={(event) =>
+                                    onChange={(event) => {
                                         form.setData(
                                             'location_id',
                                             event.target.value,
-                                        )
-                                    }
+                                        );
+                                        form.setData('items', []);
+                                    }}
                                 >
                                     {locations.map((location) => (
                                         <option
@@ -200,42 +229,52 @@ export default function SalesCreate({
                                 type="button"
                                 variant="outline"
                                 onClick={addItem}
-                                disabled={carpets.length === 0}
+                                disabled={!pieces.some(
+                                    (piece) =>
+                                        piece.location_id === Number(form.data.location_id),
+                                )}
                             >
-                                <Plus /> Add carpet
+                                <Plus /> Add piece
                             </Button>
                         </div>
                         <div className="tbl-wrap">
                             <table>
                                 <thead>
                                     <tr>
-                                        <th>Carpet</th>
+                                        <th>Piece</th>
                                         <th className="r">Line price (PKR)</th>
                                         <th aria-label="Actions" />
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {form.data.items.map((item, index) => (
-                                        <tr key={`${index}-${item.carpet_id}`}>
+                                        <tr key={`${index}-${item.piece_id}`}>
                                             <td>
                                                 <select
-                                                    aria-label="Carpet"
-                                                    value={item.carpet_id}
+                                                    aria-label="Piece"
+                                                    value={item.piece_id}
                                                     onChange={(event) =>
                                                         updateItem(
                                                             index,
-                                                            'carpet_id',
+                                                            'piece_id',
                                                             event.target.value,
                                                         )
                                                     }
                                                 >
-                                                    {carpets.map((carpet) => (
+                                                    {pieces.filter((piece) =>
+                                                        piece.location_id === Number(form.data.location_id) &&
+                                                        (item.piece_id === String(piece.id) ||
+                                                            !form.data.items.some(
+                                                                (selected, selectedIndex) =>
+                                                                    selectedIndex !== index &&
+                                                                    selected.piece_id === String(piece.id),
+                                                            )),
+                                                    ).map((piece) => (
                                                         <option
-                                                            key={carpet.id}
-                                                            value={carpet.id}
+                                                            key={piece.id}
+                                                            value={piece.id}
                                                         >
-                                                            {carpet.sku} ·{' '}
-                                                            {carpet.name}
+                                                            {piece.code} · {piece.carpet} · {piece.size}
                                                         </option>
                                                     ))}
                                                 </select>
@@ -282,9 +321,11 @@ export default function SalesCreate({
                                     {form.data.items.length === 0 && (
                                         <tr>
                                             <td className="empty" colSpan={3}>
-                                                {carpets.length
-                                                    ? 'Add a carpet to start the sale.'
-                                                    : 'No carpets are available in the catalog.'}
+                                                {pieces.some((piece) =>
+                                                    piece.location_id === Number(form.data.location_id),
+                                                )
+                                                    ? 'Add a piece to start the sale.'
+                                                    : 'No in-stock pieces are available at this display.'}
                                             </td>
                                         </tr>
                                     )}

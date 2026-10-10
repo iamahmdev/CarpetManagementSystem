@@ -4,6 +4,7 @@ use App\Http\Controllers\CarpetController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\PieceController;
 use App\Http\Controllers\ReceivablesController;
 use App\Http\Controllers\SaleController;
 use App\Http\Controllers\UserController;
@@ -53,6 +54,10 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:catalog.manage')
         ->name('carpets.store');
 
+    Route::get('pieces', [PieceController::class, 'index'])
+        ->middleware('permission:stock.view')
+        ->name('pieces.index');
+
     Route::middleware('permission:sales.create')->group(function () {
         Route::get('new-sale', [SaleController::class, 'create'])->name('new-sale.index');
         Route::post('sales', [SaleController::class, 'store'])->name('sales.store');
@@ -95,12 +100,6 @@ Route::middleware('auth')->group(function () {
         ->name('profit-report.index');
 
     $placeholderPages = [
-        [
-            'path' => 'pieces',
-            'name' => 'pieces.index',
-            'title' => 'Pieces',
-            'subtitle' => 'Every physical carpet with its own ID. Search by code, location, or status.',
-        ],
         [
             'path' => 'containers',
             'name' => 'containers.index',

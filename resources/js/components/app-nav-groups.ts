@@ -35,11 +35,15 @@ export function getAppNavGroups(permissions: string[]): NavGroup[] {
                           },
                       ]
                     : []),
-                {
-                    title: 'Pieces',
-                    href: '/pieces',
-                    icon: 'pieces',
-                },
+                ...(permissions.includes('stock.view')
+                    ? [
+                          {
+                              title: 'Pieces',
+                              href: '/pieces',
+                              icon: 'pieces' as const,
+                          },
+                      ]
+                    : []),
                 {
                     title: 'Containers',
                     href: '/containers',

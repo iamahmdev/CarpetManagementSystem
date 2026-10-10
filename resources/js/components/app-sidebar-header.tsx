@@ -1,4 +1,5 @@
-import { usePage } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
+import { useState } from 'react';
 import { getAppNavGroups } from '@/components/app-nav-groups';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { DemoIcon } from '@/components/demo-icon';
@@ -18,6 +19,7 @@ export function AppSidebarHeader({
         };
     }>();
     const { auth } = page.props;
+    const [pieceCode, setPieceCode] = useState('');
     const { toggleSidebar } = useSidebar();
     const path = new URL(
         page.url,
@@ -45,6 +47,19 @@ export function AppSidebarHeader({
           ? breadcrumbs
           : [];
 
+    function searchPiece(event: React.FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+        const input = pieceCode.trim().toUpperCase();
+        if (!input) {
+            return;
+        }
+        const numericCode = input.match(/^(?:CP-)?(\d{1,6})$/);
+        const code = numericCode
+            ? `CP-${numericCode[1].padStart(6, '0')}`
+            : input;
+        router.get('/pieces', { piece_code: code });
+    }
+
     return (
         <header className="carpet-topbar flex shrink-0 items-center transition-[width,height] ease-linear">
             <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -61,14 +76,18 @@ export function AppSidebarHeader({
                 </Button>
                 <Breadcrumbs breadcrumbs={routeBreadcrumbs} />
             </div>
-            <label className="carpet-search">
-                <DemoIcon name="search" />
-                <input
-                    type="search"
-                    placeholder="Search piece ID or barcode"
-                    aria-label="Search piece ID or barcode"
-                />
-            </label>
+            {auth.permissions.includes('stock.view') && (
+                <form className="carpet-search" onSubmit={searchPiece}>
+                    <DemoIcon name="search" />
+                    <input
+                        type="search"
+                        placeholder="Search piece ID or barcode"
+                        aria-label="Search piece ID or barcode"
+                        value={pieceCode}
+                        onChange={(event) => setPieceCode(event.target.value)}
+                    />
+                </form>
+            )}
         </header>
     );
 }

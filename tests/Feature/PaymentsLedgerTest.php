@@ -7,6 +7,7 @@ use App\Models\Payment;
 use App\Models\Sale;
 use App\Models\User;
 use App\Services\PaymentService;
+use App\Services\PieceService;
 use App\UserRole;
 use Carbon\Carbon;
 use Database\Seeders\CarpetSeeder;
@@ -101,6 +102,7 @@ test('owner can create a partial sale, receive its balance, and view a zero-endi
     $customer = Customer::query()->create(['name' => 'Carpet Buyer', 'phone' => '03001234567', 'city' => 'Hangu']);
     $location = ledgerLocation();
     $carpet = Carpet::query()->where('sku', 'TBZ-6x9-IND')->firstOrFail();
+    $piece = app(PieceService::class)->receive($carpet, $location, $user, 1, 'A', 100000)->firstOrFail();
 
     $this->actingAs($user)->post(route('sales.store'), [
         'customer_id' => $customer->id,
@@ -108,7 +110,7 @@ test('owner can create a partial sale, receive its balance, and view a zero-endi
         'discount' => 0,
         'paid_now' => 111000,
         'method' => 'cash',
-        'items' => [['carpet_id' => $carpet->id, 'unit_price' => 185000]],
+        'items' => [['piece_id' => $piece->id, 'unit_price' => 185000]],
     ])->assertRedirect();
 
     $sale = Sale::query()->with('payments')->firstOrFail();
@@ -146,12 +148,13 @@ test('a walk-in sale with a balance is rejected and excess invoice payment is no
     $user = User::factory()->create(['role' => UserRole::OWNER]);
     $location = ledgerLocation();
     $carpet = Carpet::query()->where('sku', 'TBZ-6x9-IND')->firstOrFail();
+    $piece = app(PieceService::class)->receive($carpet, $location, $user, 1, 'A', 100000)->firstOrFail();
 
     $this->actingAs($user)->post(route('sales.store'), [
         'location_id' => $location->id,
         'paid_now' => 111000,
         'method' => 'cash',
-        'items' => [['carpet_id' => $carpet->id, 'unit_price' => 185000]],
+        'items' => [['piece_id' => $piece->id, 'unit_price' => 185000]],
     ])->assertSessionHasErrors('customer_id');
     expect(Sale::query()->count())->toBe(0);
 

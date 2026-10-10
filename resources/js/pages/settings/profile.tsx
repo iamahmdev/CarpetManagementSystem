@@ -13,6 +13,9 @@ type PageProps = {
 
 const permissionLabels: Record<string, string> = {
     'users.manage': 'Manage users and roles',
+    'stock.view': 'View pieces and stock',
+    'costs.view': 'View costs',
+    'reports.profit': 'Profit report',
     'reports.receivables': 'Receivables report',
 };
 

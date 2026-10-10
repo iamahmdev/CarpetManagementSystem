@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['sale_id', 'carpet_id', 'sku', 'name', 'unit_price'])]
+#[Fillable(['sale_id', 'piece_id', 'carpet_id', 'sku', 'name', 'unit_price'])]
 class SaleItem extends Model
 {
     protected function casts(): array
@@ -22,5 +22,10 @@ class SaleItem extends Model
     public function carpet(): BelongsTo
     {
         return $this->belongsTo(Carpet::class);
+    }
+
+    public function piece(): BelongsTo
+    {
+        return $this->belongsTo(Piece::class);
     }
 }
