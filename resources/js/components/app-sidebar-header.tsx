@@ -20,6 +20,7 @@ export function AppSidebarHeader({
     }>();
     const { auth } = page.props;
     const [pieceCode, setPieceCode] = useState('');
+    const [pieceSearchError, setPieceSearchError] = useState('');
     const { toggleSidebar } = useSidebar();
     const path = new URL(
         page.url,
@@ -47,17 +48,34 @@ export function AppSidebarHeader({
           ? breadcrumbs
           : [];
 
-    function searchPiece(event: React.FormEvent<HTMLFormElement>) {
+    async function searchPiece(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
         const input = pieceCode.trim().toUpperCase();
         if (!input) {
             return;
         }
+        setPieceSearchError('');
         const numericCode = input.match(/^(?:CP-)?(\d{1,6})$/);
         const code = numericCode
             ? `CP-${numericCode[1].padStart(6, '0')}`
             : input;
-        router.get('/pieces', { piece_code: code });
+        try {
+            const params = new URLSearchParams({ code });
+            const response = await fetch(`/pieces/search?${params.toString()}`, {
+                headers: { Accept: 'application/json' },
+            });
+            const result = (await response.json()) as {
+                message?: string;
+                url?: string;
+            };
+            if (!response.ok || !result.url) {
+                setPieceSearchError(result.message ?? 'Unable to search for piece.');
+                return;
+            }
+            router.get(result.url);
+        } catch {
+            setPieceSearchError('Unable to search for piece. Please try again.');
+        }
     }
 
     return (
@@ -76,7 +94,7 @@ export function AppSidebarHeader({
                 </Button>
                 <Breadcrumbs breadcrumbs={routeBreadcrumbs} />
             </div>
-            {auth.permissions.includes('stock.view') && (
+            <div>
                 <form className="carpet-search" onSubmit={searchPiece}>
                     <DemoIcon name="search" />
                     <input
@@ -87,7 +105,12 @@ export function AppSidebarHeader({
                         onChange={(event) => setPieceCode(event.target.value)}
                     />
                 </form>
-            )}
+                {pieceSearchError && (
+                    <p className="ledger-validation-error" role="status">
+                        {pieceSearchError}
+                    </p>
+                )}
+            </div>
         </header>
     );
 }

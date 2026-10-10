@@ -102,7 +102,7 @@ test('owner can create a partial sale, receive its balance, and view a zero-endi
     $customer = Customer::query()->create(['name' => 'Carpet Buyer', 'phone' => '03001234567', 'city' => 'Hangu']);
     $location = ledgerLocation();
     $carpet = Carpet::query()->where('sku', 'TBZ-6x9-IND')->firstOrFail();
-    $piece = app(PieceService::class)->receive($carpet, $location, $user, 1, 'A', 100000)->firstOrFail();
+    $piece = app(PieceService::class)->receive($carpet, $location, $user, 1, 100000, 100000, 0, 0, 0, 0)->firstOrFail();
 
     $this->actingAs($user)->post(route('sales.store'), [
         'customer_id' => $customer->id,
@@ -148,7 +148,7 @@ test('a walk-in sale with a balance is rejected and excess invoice payment is no
     $user = User::factory()->create(['role' => UserRole::OWNER]);
     $location = ledgerLocation();
     $carpet = Carpet::query()->where('sku', 'TBZ-6x9-IND')->firstOrFail();
-    $piece = app(PieceService::class)->receive($carpet, $location, $user, 1, 'A', 100000)->firstOrFail();
+    $piece = app(PieceService::class)->receive($carpet, $location, $user, 1, 100000, 100000, 0, 0, 0, 0)->firstOrFail();
 
     $this->actingAs($user)->post(route('sales.store'), [
         'location_id' => $location->id,

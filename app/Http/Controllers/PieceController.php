@@ -5,8 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Location;
 use App\Models\Piece;
 use App\Models\PieceMovement;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -20,10 +20,10 @@ class PieceController extends Controller
             ->when($request->filled('search'), function ($builder) use ($request): void {
                 $search = $request->string('search')->toString();
                 $builder->where(function ($pieces) use ($search): void {
-                    $pieces->where('code', 'like', '%'.$search.'%')
+                    $pieces->whereRaw('LOWER(code) LIKE ?', ['%'.mb_strtolower($search).'%'])
                         ->orWhereHas('carpet', fn ($carpet) => $carpet
-                            ->where('name', 'like', '%'.$search.'%')
-                            ->orWhere('design', 'like', '%'.$search.'%'));
+                            ->whereRaw('LOWER(name) LIKE ?', ['%'.mb_strtolower($search).'%'])
+                            ->orWhereRaw('LOWER(design) LIKE ?', ['%'.mb_strtolower($search).'%']));
                 });
             })
             ->when($request->filled('location'), fn ($builder) => $builder->where('location_id', $request->integer('location')))
@@ -33,26 +33,36 @@ class PieceController extends Controller
         $selectedPiece = null;
         $notFoundMessage = null;
         if ($pieceCode !== '') {
-            $normalizedCode = $this->normalizeCode($pieceCode);
+            $normalizedCode = Piece::normalizeCode($pieceCode);
             $selectedPieceModel = Piece::query()
-                ->with(['carpet', 'location', 'movements.user', 'movements.fromLocation', 'movements.toLocation'])
+                ->with([
+                    'carpet',
+                    'location',
+                    'movements.user',
+                    'movements.fromLocation',
+                    'movements.toLocation',
+                    'movements' => fn ($movements) => $movements
+                        ->orderByDesc('moved_at')
+                        ->orderByDesc('id'),
+                ])
                 ->where('code', $normalizedCode)
                 ->first();
             if ($selectedPieceModel) {
                 $selectedPiece = $this->pieceDetails($selectedPieceModel, $request);
             } else {
-                $notFoundMessage = "No piece with ID {$normalizedCode}.";
+                $notFoundMessage = "No piece with ID {$normalizedCode}";
             }
         }
 
         $total = (clone $query)->count();
-        $pieces = $query->orderByDesc('id')
+        $pieces = $query->orderBy('id')
             ->limit(80)
             ->get()
             ->map(fn (Piece $piece): array => [
                 'id' => $piece->id,
                 'code' => $piece->code,
                 'carpet' => $piece->carpet->name,
+                'display_name' => $piece->displayName(),
                 'size' => $piece->carpet->size,
                 'location' => $piece->location->name,
                 'status' => $piece->status,
@@ -72,6 +82,30 @@ class PieceController extends Controller
             'can_create_sales' => in_array('sales.create', $permissions, true),
             'selected_piece' => $selectedPiece,
             'not_found_message' => $notFoundMessage,
+        ]);
+    }
+
+    public function search(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'code' => ['required', 'string', 'max:32'],
+        ]);
+        $code = Piece::normalizeCode($data['code']);
+        $piece = Piece::query()->where('code', $code)->first();
+
+        if (! $piece) {
+            return response()->json(['message' => "No piece with ID {$code}"], 404);
+        }
+
+        $permissions = config('roles.'.$request->user()->role->value, []);
+        if (! in_array('stock.view', $permissions, true)) {
+            return response()->json([
+                'message' => "You don't have access to piece records",
+            ], 403);
+        }
+
+        return response()->json([
+            'url' => route('pieces.index', ['piece_code' => $piece->code]),
         ]);
     }
 
@@ -95,13 +129,12 @@ class PieceController extends Controller
             'landed_cost' => in_array('costs.view', $permissions, true)
                 ? $piece->landed_cost
                 : null,
-            'container' => $piece->container_id ? (string) $piece->container_id : 'None',
+            'container' => $piece->container_number ?? 'None',
             'status' => $piece->status,
             'can_add_to_sale' => in_array('sales.create', $permissions, true)
                 && $piece->status === 'in_stock'
                 && $piece->location->type === 'display',
             'history' => $piece->movements
-                ->sortByDesc('moved_at')
                 ->map(fn (PieceMovement $movement): array => [
                     'text' => $this->movementText($movement),
                     'by' => $movement->user->name,
@@ -111,24 +144,16 @@ class PieceController extends Controller
         ];
     }
 
-    private function normalizeCode(string $code): string
-    {
-        $code = Str::upper(trim($code));
-        if (preg_match('/^(?:CP-)?(\d{1,6})$/', $code, $matches) === 1) {
-            return 'CP-'.str_pad($matches[1], 6, '0', STR_PAD_LEFT);
-        }
-
-        return $code;
-    }
-
     private function movementText(PieceMovement $movement): string
     {
+        $reference = $movement->reference ?? '';
+
         return match ($movement->type) {
-            'receive' => "Received at {$movement->toLocation?->name}",
-            'transfer_out' => "Transferred out from {$movement->fromLocation?->name}",
-            'transfer_in' => "Transferred in to {$movement->toLocation?->name}",
-            'sale' => "Sold at {$movement->fromLocation?->name}",
-            'sale_void' => "Sale voided; returned to {$movement->toLocation?->name}",
+            'receive' => "Received into {$movement->toLocation?->name} ({$reference})",
+            'transfer_out' => "Sent from {$movement->fromLocation?->name} to {$movement->toLocation?->name} ({$reference})",
+            'transfer_in' => "Arrived at {$movement->toLocation?->name} ({$reference})",
+            'sale' => "Sold at {$movement->fromLocation?->name} ({$reference})",
+            'sale_void' => "Sale voided, back in stock at {$movement->toLocation?->name} ({$reference})",
         };
     }
 }

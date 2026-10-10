@@ -21,6 +21,7 @@ type PieceRow = {
 };
 
 type PieceDetail = PieceRow & {
+    display_name: string;
     design: string;
     weave: string;
     color: string;
@@ -58,6 +59,47 @@ const statusClasses: Record<string, string> = {
     sold: 'b-gray',
     damaged: 'b-red',
     reserved: 'b-indigo',
+};
+
+const code39Patterns: Record<string, string> = {
+    '0': '000110100',
+    '1': '100100001',
+    '2': '001100001',
+    '3': '101100000',
+    '4': '000110001',
+    '5': '100110000',
+    '6': '001110000',
+    '7': '000100101',
+    '8': '100100100',
+    '9': '001100100',
+    A: '100001001',
+    B: '001001001',
+    C: '101001000',
+    D: '000011001',
+    E: '100011000',
+    F: '001011000',
+    G: '000001101',
+    H: '100001100',
+    I: '001001100',
+    J: '000011100',
+    K: '100000011',
+    L: '001000011',
+    M: '101000010',
+    N: '000010011',
+    O: '100010010',
+    P: '001010010',
+    Q: '000000111',
+    R: '100000110',
+    S: '001000110',
+    T: '000010110',
+    U: '110000001',
+    V: '011000001',
+    W: '111000000',
+    X: '010010001',
+    Y: '110010000',
+    Z: '011010000',
+    '-': '010000101',
+    '*': '010010100',
 };
 
 export default function PiecesIndex(props: Props) {
@@ -110,7 +152,8 @@ export default function PiecesIndex(props: Props) {
                     <div>
                         <h1>Pieces</h1>
                         <p className="sub">
-                            Every physical carpet, tracked by its own ID.
+                            Every physical carpet with its own ID. Search by
+                            code, location, or status.
                         </p>
                     </div>
                 </header>
@@ -119,7 +162,7 @@ export default function PiecesIndex(props: Props) {
                         <input
                             type="search"
                             aria-label="Search pieces"
-                            placeholder="Search code, carpet name, or design"
+                            placeholder="Search by ID, carpet, or design"
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
                         />
@@ -178,17 +221,26 @@ export default function PiecesIndex(props: Props) {
                             </thead>
                             <tbody>
                                 {props.pieces.map((piece) => (
-                                    <tr key={piece.id}>
+                                    <tr
+                                        key={piece.id}
+                                        className="ledger-piece-row"
+                                        role="button"
+                                        tabIndex={0}
+                                        onClick={() => showPiece(piece.code)}
+                                        onKeyDown={(event) => {
+                                            if (
+                                                event.key === 'Enter' ||
+                                                event.key === ' '
+                                            ) {
+                                                event.preventDefault();
+                                                showPiece(piece.code);
+                                            }
+                                        }}
+                                    >
                                         <td>
-                                            <button
-                                                type="button"
-                                                className="ledger-link"
-                                                onClick={() =>
-                                                    showPiece(piece.code)
-                                                }
-                                            >
+                                            <strong className="ledger-link">
                                                 {piece.code}
-                                            </button>
+                                            </strong>
                                         </td>
                                         <td>
                                             <strong>{piece.carpet}</strong>
@@ -204,7 +256,7 @@ export default function PiecesIndex(props: Props) {
                                             {formatMoney(piece.price)}
                                         </td>
                                         {props.can_view_costs && (
-                                            <td className="r">
+                                            <td className="r muted">
                                                 {formatMoney(
                                                     piece.landed_cost ?? 0,
                                                 )}
@@ -238,20 +290,18 @@ export default function PiecesIndex(props: Props) {
                     <DialogContent className="ledger-dialog max-w-[650px]">
                         <DialogHeader>
                             <DialogTitle>
-                                Piece {selectedPiece.code}
+                                {selectedPiece.code}
                             </DialogTitle>
                         </DialogHeader>
                         <div className="ledger-piece-detail">
-                            <div className="ledger-piece-barcode">
-                                {selectedPiece.code}
+                            <div className="ledger-piece-top">
+                                <PieceBarcode code={selectedPiece.code} />
+                                <PieceStatus status={selectedPiece.status} />
                             </div>
-                            <PieceStatus status={selectedPiece.status} />
                             <dl>
-                                <div><dt>Carpet</dt><dd>{selectedPiece.carpet}</dd></div>
-                                <div><dt>Design</dt><dd>{selectedPiece.design}</dd></div>
-                                <div><dt>Weave</dt><dd>{selectedPiece.weave}</dd></div>
-                                <div><dt>Size</dt><dd>{selectedPiece.size}</dd></div>
-                                <div><dt>Color</dt><dd>{selectedPiece.color}</dd></div>
+                                <div><dt>Carpet</dt><dd><strong>{selectedPiece.carpet}</strong></dd></div>
+                                <div><dt>Design</dt><dd>{selectedPiece.design}, {selectedPiece.weave}</dd></div>
+                                <div><dt>Size and color</dt><dd>{selectedPiece.size}, {selectedPiece.color}</dd></div>
                                 <div><dt>Material</dt><dd>{selectedPiece.material}</dd></div>
                                 <div><dt>Grade</dt><dd>{selectedPiece.grade}</dd></div>
                                 <div><dt>Location</dt><dd>{selectedPiece.location}</dd></div>
@@ -266,8 +316,7 @@ export default function PiecesIndex(props: Props) {
                                 {selectedPiece.history.map((movement, index) => (
                                     <li key={`${movement.at}-${index}`}>
                                         <strong>{movement.text}</strong>
-                                        <span>by {movement.by}</span>
-                                        <time>{formatDateTime(movement.at)}</time>
+                                        <time>{formatDateTime(movement.at)} by {movement.by}</time>
                                     </li>
                                 ))}
                                 {selectedPiece.history.length === 0 && (
@@ -275,20 +324,75 @@ export default function PiecesIndex(props: Props) {
                                 )}
                             </ol>
                         </div>
-                        {props.can_create_sales &&
-                            selectedPiece.can_add_to_sale && (
-                                <Button asChild className="demo-primary-button">
-                                    <Link
-                                        href={`/new-sale?piece_id=${selectedPiece.id}`}
-                                    >
-                                        Add to sale
-                                    </Link>
-                                </Button>
-                            )}
+                        <div className="ledger-piece-actions">
+                            {props.can_create_sales &&
+                                selectedPiece.can_add_to_sale && (
+                                    <Button asChild className="demo-primary-button">
+                                        <Link
+                                            href={`/new-sale?piece_id=${selectedPiece.id}`}
+                                        >
+                                            Add to sale
+                                        </Link>
+                                    </Button>
+                                )}
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => closePiece(false)}
+                            >
+                                Close
+                            </Button>
+                        </div>
                     </DialogContent>
                 )}
             </Dialog>
         </>
+    );
+}
+
+function PieceBarcode({ code }: { code: string }) {
+    const characters = `*${code}*`;
+    const bars: { x: number; width: number }[] = [];
+    let position = 4;
+
+    [...characters].forEach((character, characterIndex) => {
+        const pattern = code39Patterns[character];
+        if (!pattern) {
+            throw new Error(`Unsupported Code 39 character: ${character}`);
+        }
+
+        [...pattern].forEach((width, index) => {
+            const barWidth = width === '1' ? 3 : 1;
+            if (index % 2 === 0) {
+                bars.push({ x: position, width: barWidth });
+            }
+            position += barWidth;
+        });
+
+        if (characterIndex < characters.length - 1) {
+            position += 1;
+        }
+    });
+
+    return (
+        <svg
+            className="ledger-piece-barcode"
+            role="img"
+            aria-label={`Barcode ${code}`}
+            viewBox={`0 0 ${position + 4} 44`}
+            preserveAspectRatio="none"
+        >
+            {bars.map((bar, index) => (
+                <rect
+                    key={index}
+                    x={bar.x}
+                    y="0"
+                    width={bar.width}
+                    height="44"
+                    fill="currentColor"
+                />
+            ))}
+        </svg>
     );
 }
 

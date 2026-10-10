@@ -7,11 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Str;
 
 #[Fillable([
     'code',
     'carpet_id',
     'container_id',
+    'container_number',
     'location_id',
     'status',
     'grade',
@@ -37,6 +39,16 @@ class Piece extends Model
         return $value ?? 'CP-'.str_pad((string) $this->id, 6, '0', STR_PAD_LEFT);
     }
 
+    public static function normalizeCode(string $code): string
+    {
+        $code = Str::upper(trim($code));
+        if (preg_match('/^(?:CP-)?(\d{1,6})$/', $code, $matches) === 1) {
+            return 'CP-'.str_pad($matches[1], 6, '0', STR_PAD_LEFT);
+        }
+
+        return $code;
+    }
+
     public function carpet(): BelongsTo
     {
         return $this->belongsTo(Carpet::class);
@@ -60,5 +72,10 @@ class Piece extends Model
     public function effectivePrice(): int
     {
         return $this->price ?? $this->carpet->price;
+    }
+
+    public function displayName(): string
+    {
+        return $this->carpet->name.' '.$this->carpet->size;
     }
 }

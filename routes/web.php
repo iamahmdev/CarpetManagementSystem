@@ -57,8 +57,11 @@ Route::middleware('auth')->group(function () {
     Route::get('pieces', [PieceController::class, 'index'])
         ->middleware('permission:stock.view')
         ->name('pieces.index');
+    Route::get('pieces/search', [PieceController::class, 'search'])
+        ->name('pieces.search');
 
     Route::middleware('permission:sales.create')->group(function () {
+        Route::get('pieces/lookup', [SaleController::class, 'lookupPiece'])->name('pieces.lookup');
         Route::get('new-sale', [SaleController::class, 'create'])->name('new-sale.index');
         Route::post('sales', [SaleController::class, 'store'])->name('sales.store');
         Route::post('sales/{sale}/payments', [PaymentController::class, 'storeForSale'])->name('sales.payments.store');

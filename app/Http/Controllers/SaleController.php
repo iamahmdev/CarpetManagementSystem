@@ -8,6 +8,7 @@ use App\Models\Piece;
 use App\Models\Sale;
 use App\Services\PaymentService;
 use App\Services\PieceService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -63,8 +64,11 @@ class SaleController extends Controller
                     'code' => $piece->code,
                     'carpet' => $piece->carpet->name,
                     'sku' => $piece->carpet->sku,
+                    'design' => $piece->carpet->design,
                     'size' => $piece->carpet->size,
                     'location_id' => $piece->location_id,
+                    'location' => $piece->location->name,
+                    'status' => $piece->status,
                     'price' => $piece->effectivePrice(),
                 ]),
             'selected_piece_id' => $request->integer('piece_id') ?: null,
@@ -75,6 +79,62 @@ class SaleController extends Controller
                 ['value' => 'mobile_wallet', 'label' => 'Mobile wallet'],
             ],
             'selected_customer_id' => $request->integer('customer_id') ?: null,
+        ]);
+    }
+
+    public function lookupPiece(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'code' => ['required', 'string', 'max:32'],
+            'location_id' => ['required', 'integer', 'exists:locations,id'],
+            'existing_piece_ids' => ['sometimes', 'array'],
+            'existing_piece_ids.*' => ['integer'],
+        ]);
+        $code = Piece::normalizeCode($data['code']);
+        $piece = Piece::query()
+            ->with(['carpet', 'location'])
+            ->where('code', $code)
+            ->first();
+
+        if (! $piece) {
+            return response()->json(['message' => "No piece with ID {$code}"], 404);
+        }
+
+        if (in_array($piece->id, array_map('intval', $data['existing_piece_ids'] ?? []), true)) {
+            return response()->json([
+                'message' => "{$piece->code} is already on the invoice",
+            ], 422);
+        }
+
+        if ($piece->status !== 'in_stock') {
+            $status = match ($piece->status) {
+                'in_stock' => 'in stock',
+                'in_transit' => 'in transit',
+                default => str_replace('_', ' ', $piece->status),
+            };
+
+            return response()->json([
+                'message' => "{$piece->code} is {$status} and can't be sold",
+            ], 422);
+        }
+
+        if (
+            $piece->location_id !== (int) $data['location_id']
+            || $piece->location->type !== 'display'
+            || ! $piece->location->active
+        ) {
+            return response()->json([
+                'message' => "{$piece->code} is at {$piece->location->name}, not the selected display",
+            ], 422);
+        }
+
+        return response()->json([
+            'piece' => [
+                'id' => $piece->id,
+                'code' => $piece->code,
+                'name' => $piece->displayName(),
+                'price' => $piece->effectivePrice(),
+            ],
         ]);
     }
 
@@ -160,12 +220,14 @@ class SaleController extends Controller
                 $carpet = $piece->carpet;
                 $sale->items()->create([
                     'piece_id' => $piece->id,
+                    'piece_code' => $piece->code,
                     'carpet_id' => $carpet->id,
                     'sku' => $carpet->sku,
-                    'name' => $carpet->name,
+                    'name' => $piece->displayName(),
                     'unit_price' => (int) $item['unit_price'],
+                    'unit_cost' => $piece->landed_cost,
                 ]);
-                $pieces->changeStatus($piece, 'sale', 'sold', $piece->location, $sale->invoice_number, $request->user());
+                $pieces->changeStatus($piece, 'sale', 'sold', $piece->location, $sale->invoice_number, $request->user(), $sale->sold_at);
             }
 
             if ($paid > 0) {
@@ -198,7 +260,7 @@ class SaleController extends Controller
                 'balance' => $sale->balanceDue(),
                 'status' => $sale->paymentStatus(),
                 'items' => $sale->items->map(fn ($item): array => [
-                    'piece_code' => $item->piece?->code,
+                    'piece_code' => $item->piece_code,
                     'sku' => $item->sku,
                     'name' => $item->name,
                     'unit_price' => $item->unit_price,

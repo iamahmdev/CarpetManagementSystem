@@ -1241,15 +1241,52 @@
     gap: 16px;
 }
 
+.ledger-piece-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
 .ledger-piece-barcode {
+    flex: 0 0 auto;
+    width: 220px;
+    height: 44px;
     border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 14px;
-    font-family: monospace;
-    font-size: 20px;
-    font-weight: 700;
-    letter-spacing: 4px;
-    text-align: center;
+    color: #111;
+    background: #fff;
+}
+
+.ledger-piece-row {
+    cursor: pointer;
+}
+
+.ledger-piece-row:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: -2px;
+}
+
+.ledger-piece-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.ledger-sale-piece-picker {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.ledger-sale-piece-picker > form {
+    display: flex;
+    gap: 8px;
+}
+
+.ledger-sale-piece-results {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
 }
 
 .ledger-piece-detail dl {

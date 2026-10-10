@@ -1,7 +1,6 @@
 import { Head, useForm } from '@inertiajs/react';
 import { Plus, Trash2 } from 'lucide-react';
-import { useMemo } from 'react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,7 +23,10 @@ type Props = {
         sku: string;
         carpet: string;
         size: string;
+        design: string;
         location_id: number;
+        location: string;
+        status: string;
         price: number;
     }[];
     payment_methods: { value: string; label: string }[];
@@ -41,6 +43,9 @@ export default function SalesCreate({
     selected_piece_id,
 }: Props) {
     const [customerOpen, setCustomerOpen] = useState(false);
+    const [pieceSearch, setPieceSearch] = useState('');
+    const [pieceCode, setPieceCode] = useState('');
+    const [pieceLookupError, setPieceLookupError] = useState('');
     const selectedPiece = pieces.find(
         (piece) => piece.id === selected_piece_id,
     );
@@ -89,6 +94,24 @@ export default function SalesCreate({
         subtotal,
     );
     const total = subtotal - discount;
+    const availablePieces = pieces.filter(
+        (piece) =>
+            piece.location_id === Number(form.data.location_id) &&
+            !form.data.items.some(
+                (item) => item.piece_id === String(piece.id),
+            ),
+    );
+    const matchingPieces = availablePieces.filter((piece) => {
+        const query = pieceSearch.trim().toLocaleLowerCase();
+
+        return (
+            !query ||
+            [piece.code, piece.carpet, piece.design].some((value) =>
+                value.toLocaleLowerCase().includes(query),
+            )
+        );
+    });
+    const visiblePieces = matchingPieces.slice(0, 40);
 
     function createCustomer(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -103,32 +126,84 @@ export default function SalesCreate({
         });
     }
 
-    function addItem() {
-        const piece = pieces.find(
-            (row) =>
-                row.location_id === Number(form.data.location_id) &&
-                !form.data.items.some((item) => item.piece_id === String(row.id)),
-        );
-        if (!piece) return;
+    function addItem(piece: Props['pieces'][number]) {
         form.setData('items', [
             ...form.data.items,
             { piece_id: String(piece.id), unit_price: String(piece.price) },
         ]);
+        setPieceLookupError('');
     }
 
-    function updateItem(
-        index: number,
-        field: 'piece_id' | 'unit_price',
-        value: string,
-    ) {
+    function updateItemPrice(index: number, value: string) {
         const items = form.data.items.map((item, itemIndex) =>
-            itemIndex === index ? { ...item, [field]: value } : item,
+            itemIndex === index ? { ...item, unit_price: value } : item,
         );
-        if (field === 'piece_id') {
-            const piece = pieces.find((row) => String(row.id) === value);
-            if (piece) items[index].unit_price = String(piece.price);
-        }
         form.setData('items', items);
+    }
+
+    async function addPieceByCode(event: React.FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+        const input = pieceCode.trim().toUpperCase();
+        const numericCode = input.match(/^(?:CP-)?(\d{1,6})$/);
+        const normalizedCode = numericCode
+            ? `CP-${numericCode[1].padStart(6, '0')}`
+            : input;
+        const existingPiece = pieces.find((piece) => piece.code === normalizedCode);
+
+        if (
+            existingPiece &&
+            form.data.items.some(
+                (item) => item.piece_id === String(existingPiece.id),
+            )
+        ) {
+            setPieceLookupError(`${normalizedCode} is already on the invoice`);
+            return;
+        }
+
+        setPieceLookupError('');
+        try {
+            const params = new URLSearchParams({
+                code: input,
+                location_id: form.data.location_id,
+            });
+            form.data.items.forEach((item) => {
+                params.append('existing_piece_ids[]', item.piece_id);
+            });
+            const response = await fetch(`/pieces/lookup?${params.toString()}`, {
+                headers: { Accept: 'application/json' },
+            });
+            const result = (await response.json()) as {
+                message?: string;
+                piece?: { id: number; code: string; name: string; price: number };
+            };
+            if (!response.ok || !result.piece) {
+                setPieceLookupError(result.message ?? 'Unable to look up piece.');
+                return;
+            }
+
+            if (
+                form.data.items.some(
+                    (item) => item.piece_id === String(result.piece?.id),
+                )
+            ) {
+                setPieceLookupError(
+                    `${result.piece.code} is already on the invoice`,
+                );
+                return;
+            }
+
+            form.setData('items', [
+                ...form.data.items,
+                {
+                    piece_id: String(result.piece.id),
+                    unit_price: String(result.piece.price),
+                },
+            ]);
+            setPieceCode('');
+            setPieceSearch('');
+        } catch {
+            setPieceLookupError('Unable to look up piece. Please try again.');
+        }
     }
 
     function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -204,11 +279,17 @@ export default function SalesCreate({
                                     required
                                     value={form.data.location_id}
                                     onChange={(event) => {
-                                        form.setData(
-                                            'location_id',
-                                            event.target.value,
-                                        );
-                                        form.setData('items', []);
+                                        form.setData({
+                                            customer_id: '',
+                                            location_id: event.target.value,
+                                            discount: '0',
+                                            paid_now: '',
+                                            method: 'cash',
+                                            items: [],
+                                        });
+                                        setPieceSearch('');
+                                        setPieceCode('');
+                                        setPieceLookupError('');
                                     }}
                                 >
                                     {locations.map((location) => (
@@ -225,17 +306,51 @@ export default function SalesCreate({
                         </div>
                         <div className="card-head">
                             <h2>Sale items</h2>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={addItem}
-                                disabled={!pieces.some(
-                                    (piece) =>
-                                        piece.location_id === Number(form.data.location_id),
-                                )}
-                            >
-                                <Plus /> Add piece
-                            </Button>
+                        </div>
+                        <div className="ledger-sale-piece-picker">
+                            <input
+                                type="search"
+                                aria-label="Filter available pieces"
+                                placeholder="Filter by ID, carpet, or design"
+                                value={pieceSearch}
+                                onChange={(event) => setPieceSearch(event.target.value)}
+                            />
+                            <form onSubmit={addPieceByCode}>
+                                <input
+                                    aria-label="Add piece by ID"
+                                    placeholder="Enter piece ID"
+                                    value={pieceCode}
+                                    onChange={(event) => setPieceCode(event.target.value)}
+                                />
+                                <Button type="submit" variant="outline">
+                                    <Plus /> Add by ID
+                                </Button>
+                            </form>
+                            {pieceLookupError && (
+                                <p className="ledger-validation-error" role="alert">
+                                    {pieceLookupError}
+                                </p>
+                            )}
+                            <div className="ledger-sale-piece-results">
+                                {visiblePieces.map((piece) => (
+                                    <Button
+                                        key={piece.id}
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => addItem(piece)}
+                                    >
+                                        {piece.code} · {piece.carpet} · {piece.design}
+                                    </Button>
+                                ))}
+                            </div>
+                            {matchingPieces.length > 40 && (
+                                <p className="muted">
+                                    {matchingPieces.length - 40} more. Use the filter above.
+                                </p>
+                            )}
+                            {matchingPieces.length === 0 && (
+                                <p className="muted">No available pieces here.</p>
+                            )}
                         </div>
                         <div className="tbl-wrap">
                             <table>
@@ -250,34 +365,10 @@ export default function SalesCreate({
                                     {form.data.items.map((item, index) => (
                                         <tr key={`${index}-${item.piece_id}`}>
                                             <td>
-                                                <select
-                                                    aria-label="Piece"
-                                                    value={item.piece_id}
-                                                    onChange={(event) =>
-                                                        updateItem(
-                                                            index,
-                                                            'piece_id',
-                                                            event.target.value,
-                                                        )
-                                                    }
-                                                >
-                                                    {pieces.filter((piece) =>
-                                                        piece.location_id === Number(form.data.location_id) &&
-                                                        (item.piece_id === String(piece.id) ||
-                                                            !form.data.items.some(
-                                                                (selected, selectedIndex) =>
-                                                                    selectedIndex !== index &&
-                                                                    selected.piece_id === String(piece.id),
-                                                            )),
-                                                    ).map((piece) => (
-                                                        <option
-                                                            key={piece.id}
-                                                            value={piece.id}
-                                                        >
-                                                            {piece.code} · {piece.carpet} · {piece.size}
-                                                        </option>
-                                                    ))}
-                                                </select>
+                                                {pieces.find(
+                                                    (piece) =>
+                                                        String(piece.id) === item.piece_id,
+                                                )?.code ?? item.piece_id}
                                             </td>
                                             <td className="r">
                                                 <Input
@@ -286,11 +377,7 @@ export default function SalesCreate({
                                                     step="500"
                                                     value={item.unit_price}
                                                     onChange={(event) =>
-                                                        updateItem(
-                                                            index,
-                                                            'unit_price',
-                                                            event.target.value,
-                                                        )
+                                                        updateItemPrice(index, event.target.value)
                                                     }
                                                 />
                                             </td>
@@ -321,11 +408,7 @@ export default function SalesCreate({
                                     {form.data.items.length === 0 && (
                                         <tr>
                                             <td className="empty" colSpan={3}>
-                                                {pieces.some((piece) =>
-                                                    piece.location_id === Number(form.data.location_id),
-                                                )
-                                                    ? 'Add a piece to start the sale.'
-                                                    : 'No in-stock pieces are available at this display.'}
+                                                'Add a piece to start the sale.'
                                             </td>
                                         </tr>
                                     )}
@@ -377,7 +460,7 @@ export default function SalesCreate({
                                     min="0"
                                     max={total}
                                     step="500"
-                                    value={form.data.paid_now || total}
+                                    value={form.data.paid_now}
                                     onChange={(event) =>
                                         form.setData(
                                             'paid_now',
