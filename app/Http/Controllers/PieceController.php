@@ -76,7 +76,7 @@ class PieceController extends Controller
             'pieces' => $pieces,
             'total' => $total,
             'filters' => $request->only(['search', 'location', 'status']),
-            'locations' => Location::query()->orderBy('name')->get(['id', 'name']),
+            'locations' => Location::query()->orderBy('id')->get(['id', 'name']),
             'statuses' => Piece::STATUSES,
             'can_view_costs' => in_array('costs.view', $permissions, true),
             'can_create_sales' => in_array('sales.create', $permissions, true),

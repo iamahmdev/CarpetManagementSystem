@@ -1,5 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
     Dialog,
     DialogContent,
@@ -12,8 +12,7 @@ import { formatDateTime, formatMoney } from '@/lib/ledger';
 type PieceRow = {
     id: number;
     code: string;
-    carpet: string;
-    size: string;
+    display_name: string;
     location: string;
     status: string;
     price: number;
@@ -21,7 +20,6 @@ type PieceRow = {
 };
 
 type PieceDetail = PieceRow & {
-    display_name: string;
     design: string;
     weave: string;
     color: string;
@@ -104,8 +102,43 @@ const code39Patterns: Record<string, string> = {
 
 export default function PiecesIndex(props: Props) {
     const [search, setSearch] = useState(props.filters.search ?? '');
+    const [locationFilter, setLocationFilter] = useState(
+        props.filters.location ?? '',
+    );
+    const [statusFilter, setStatusFilter] = useState(
+        props.filters.status ?? '',
+    );
     const [selectedPiece, setSelectedPiece] =
         useState<PieceDetail | null>(props.selected_piece);
+    const isInitialFilterRender = useRef(true);
+
+    useEffect(() => {
+        setSearch(props.filters.search ?? '');
+        setLocationFilter(props.filters.location ?? '');
+        setStatusFilter(props.filters.status ?? '');
+    }, [props.filters.search, props.filters.location, props.filters.status]);
+
+    useEffect(() => {
+        if (isInitialFilterRender.current) {
+            isInitialFilterRender.current = false;
+
+            return;
+        }
+
+        const timeout = window.setTimeout(() => {
+            router.get(
+                '/pieces',
+                {
+                    search: search || undefined,
+                    location: locationFilter || undefined,
+                    status: statusFilter || undefined,
+                },
+                { preserveState: true, preserveScroll: true, replace: true },
+            );
+        }, 250);
+
+        return () => window.clearTimeout(timeout);
+    }, [search, locationFilter, statusFilter]);
 
     useEffect(() => {
         setSelectedPiece(props.selected_piece);
@@ -113,15 +146,14 @@ export default function PiecesIndex(props: Props) {
 
     function filterPieces(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
-        const formData = new FormData(event.currentTarget);
         router.get(
             '/pieces',
             {
                 search: search || undefined,
-                location: String(formData.get('location') ?? '') || undefined,
-                status: String(formData.get('status') ?? '') || undefined,
+                location: locationFilter || undefined,
+                status: statusFilter || undefined,
             },
-            { preserveState: true, replace: true },
+            { preserveState: true, preserveScroll: true, replace: true },
         );
     }
 
@@ -147,7 +179,7 @@ export default function PiecesIndex(props: Props) {
     return (
         <>
             <Head title="Pieces" />
-            <main className="ledger-page p-4">
+            <main className="ledger-page pieces-page p-4">
                 <header className="page-head">
                     <div>
                         <h1>Pieces</h1>
@@ -157,19 +189,23 @@ export default function PiecesIndex(props: Props) {
                         </p>
                     </div>
                 </header>
-                <section className="card ledger-card">
-                    <form className="ledger-filters" onSubmit={filterPieces}>
+                <section className="card ledger-card pieces-card">
+                    <form className="pieces-filters" onSubmit={filterPieces}>
                         <input
                             type="search"
                             aria-label="Search pieces"
                             placeholder="Search by ID, carpet, or design"
+                            autoComplete="off"
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
                         />
                         <select
                             name="location"
                             aria-label="Filter by location"
-                            defaultValue={props.filters.location ?? ''}
+                            value={locationFilter}
+                            onChange={(event) =>
+                                setLocationFilter(event.target.value)
+                            }
                         >
                             <option value="">All locations</option>
                             {props.locations.map((location) => (
@@ -181,7 +217,10 @@ export default function PiecesIndex(props: Props) {
                         <select
                             name="status"
                             aria-label="Filter by status"
-                            defaultValue={props.filters.status ?? ''}
+                            value={statusFilter}
+                            onChange={(event) =>
+                                setStatusFilter(event.target.value)
+                            }
                         >
                             <option value="">All statuses</option>
                             {props.statuses.map((status) => (
@@ -190,9 +229,6 @@ export default function PiecesIndex(props: Props) {
                                 </option>
                             ))}
                         </select>
-                        <Button type="submit" variant="outline">
-                            Apply filters
-                        </Button>
                     </form>
                     {props.not_found_message && (
                         <p className="ledger-validation-error" role="status">
@@ -206,7 +242,7 @@ export default function PiecesIndex(props: Props) {
                         </p>
                     )}
                     <div className="tbl-wrap">
-                        <table>
+                        <table className="pieces-table">
                             <thead>
                                 <tr>
                                     <th>ID</th>
@@ -238,16 +274,11 @@ export default function PiecesIndex(props: Props) {
                                         }}
                                     >
                                         <td>
-                                            <strong className="ledger-link">
+                                            <strong className="piece-code">
                                                 {piece.code}
                                             </strong>
                                         </td>
-                                        <td>
-                                            <strong>{piece.carpet}</strong>
-                                            <div className="muted">
-                                                {piece.size}
-                                            </div>
-                                        </td>
+                                        <td>{piece.display_name}</td>
                                         <td>{piece.location}</td>
                                         <td>
                                             <PieceStatus status={piece.status} />

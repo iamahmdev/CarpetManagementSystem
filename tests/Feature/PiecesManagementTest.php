@@ -426,6 +426,89 @@ test('pieces are listed in ascending ID order', function () {
             ->where('pieces.2.id', $third->id));
 });
 
+test('pieces page location options include every location in ID order', function () {
+    $owner = User::factory()->create(['role' => UserRole::OWNER]);
+    $first = piecesTestLocation('Zeta Warehouse', 'warehouse');
+    $second = piecesTestLocation('Alpha Warehouse', 'warehouse');
+    $third = piecesTestLocation('Beta Display');
+    $third->update(['active' => false]);
+
+    $this->actingAs($owner)
+        ->get(route('pieces.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('locations', [
+                ['id' => $first->id, 'name' => $first->name],
+                ['id' => $second->id, 'name' => $second->name],
+                ['id' => $third->id, 'name' => $third->name],
+            ]));
+});
+
+test('pieces page location filter combines with search and status filters', function () {
+    $owner = User::factory()->create(['role' => UserRole::OWNER]);
+    $carpet = piecesTestCarpet();
+    $otherCarpet = piecesTestCarpet([
+        'sku' => 'OTHER-6x9',
+        'name' => 'Other Carpet',
+    ]);
+    $selectedLocation = piecesTestLocation('Selected Display');
+    $otherLocation = piecesTestLocation('Other Display');
+    $matchingPiece = receiveTestPiece($carpet, $selectedLocation, $owner);
+    receiveTestPiece($carpet, $otherLocation, $owner);
+    receiveTestPiece($otherCarpet, $selectedLocation, $owner)->update(['status' => 'sold']);
+
+    $this->actingAs($owner)
+        ->get(route('pieces.index', [
+            'search' => 'Test Herati',
+            'location' => $selectedLocation->id,
+            'status' => 'in_stock',
+        ]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('filters.search', 'Test Herati')
+            ->where('filters.location', (string) $selectedLocation->id)
+            ->where('filters.status', 'in_stock')
+            ->has('pieces', 1)
+            ->where('pieces.0.id', $matchingPiece->id));
+});
+
+test('a newly created location is returned by the pieces page', function () {
+    $owner = User::factory()->create(['role' => UserRole::OWNER]);
+    $existingLocation = piecesTestLocation('Existing Location');
+
+    $this->actingAs($owner)
+        ->get(route('pieces.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('locations', 1));
+
+    $newLocation = piecesTestLocation('Added Later Location');
+
+    $this->get(route('pieces.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('locations', [
+                ['id' => $existingLocation->id, 'name' => $existingLocation->name],
+                ['id' => $newLocation->id, 'name' => $newLocation->name],
+            ]));
+});
+
+test('pieces page returns locations when there are no pieces', function () {
+    $owner = User::factory()->create(['role' => UserRole::OWNER]);
+    $first = piecesTestLocation('First Location');
+    $second = piecesTestLocation('Second Location');
+
+    $this->actingAs($owner)
+        ->get(route('pieces.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('pieces', 0)
+            ->where('locations', [
+                ['id' => $first->id, 'name' => $first->name],
+                ['id' => $second->id, 'name' => $second->name],
+            ]));
+});
+
 test('new sale only offers active display locations and a selected piece sets its sale defaults', function () {
     $owner = User::factory()->create(['role' => UserRole::OWNER]);
     $carpet = piecesTestCarpet();

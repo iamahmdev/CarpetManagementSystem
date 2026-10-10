@@ -360,10 +360,10 @@
 }
 
 .carpet-topbar {
-    height: 60px;
-    min-height: 60px;
-    padding: 0 32px;
-    gap: 12px;
+    height: 84px;
+    min-height: 84px;
+    padding: 0 46px;
+    gap: 16px;
     background: var(--page);
     border-bottom: 1px solid var(--border);
 }
@@ -419,6 +419,39 @@
     flex: none;
 }
 
+.carpet-topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+.carpet-view-as {
+    display: flex;
+    width: 226px;
+    min-height: 54px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--card);
+    padding: 0 16px;
+    color: var(--ink);
+    font-size: 18px;
+    white-space: nowrap;
+}
+
+.carpet-view-as strong {
+    color: var(--ink);
+    font-weight: 500;
+}
+
+.carpet-view-as svg {
+    width: 16px;
+    height: 16px;
+    flex: none;
+}
+
 .carpet-search svg {
     position: absolute;
     left: 10px;
@@ -430,13 +463,13 @@
 }
 
 .carpet-search input {
-    width: 250px;
-    min-height: 36px;
+    width: 354px;
+    min-height: 54px;
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 10px;
     background: var(--card);
-    padding: 8px 10px 8px 32px;
-    font-size: 14px;
+    padding: 8px 14px 8px 44px;
+    font-size: 18px;
 }
 
 .page-head {
@@ -503,6 +536,73 @@
 
 .ledger-card {
     margin-top: 16px;
+}
+
+.pieces-page {
+    max-width: 1480px;
+    padding: 44px 44px 40px;
+}
+
+.pieces-page .page-head h1 {
+    font-size: 36px;
+}
+
+.pieces-page .page-head .sub {
+    font-size: 18px;
+}
+
+.pieces-card {
+    padding: 26px 28px;
+}
+
+.pieces-filters {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+    margin-bottom: 16px;
+}
+
+.pieces-filters input,
+.pieces-filters select {
+    width: 100%;
+    min-width: 0;
+    min-height: 54px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--card);
+    padding: 10px 14px;
+    color: var(--ink);
+    font-size: 16px;
+}
+
+.pieces-filters input:focus,
+.pieces-filters select:focus {
+    outline: 2px solid color-mix(in srgb, var(--indigo) 30%, transparent);
+    outline-offset: 1px;
+}
+
+.pieces-table {
+    min-width: 760px;
+}
+
+.pieces-table th {
+    padding: 12px 14px;
+    font-size: 14px;
+}
+
+.pieces-table td {
+    padding: 14px;
+    font-size: 16px;
+}
+
+.pieces-table .piece-code {
+    color: var(--ink);
+    font-weight: 700;
+}
+
+.pieces-table .badge {
+    padding: 4px 14px;
+    font-size: 14px;
 }
 
 .ledger-metrics {
@@ -1144,6 +1244,17 @@
         padding: 0 16px;
     }
 
+    .carpet-topbar-actions {
+        gap: 8px;
+    }
+
+    .carpet-view-as {
+        width: 190px;
+        min-height: 44px;
+        padding: 0 12px;
+        font-size: 15px;
+    }
+
     .page-placeholder {
         padding: 20px 16px 40px;
     }
@@ -1168,13 +1279,26 @@
     }
 
     .carpet-search input {
-        width: 150px;
+        width: 180px;
+        min-height: 44px;
+        padding-left: 34px;
+        font-size: 14px;
+    }
+
+    .carpet-search svg {
+        top: 14px;
     }
 }
 
 @media (max-width: 560px) {
     .carpet-search {
         display: none;
+    }
+
+    .carpet-view-as {
+        width: 170px;
+        min-height: 40px;
+        font-size: 14px;
     }
 
     .demo-profile-row {
@@ -1189,6 +1313,19 @@
     .ledger-filters,
     .ledger-receipt-details {
         grid-template-columns: minmax(0, 1fr);
+    }
+
+    .pieces-filters {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 10px;
+    }
+
+    .pieces-page {
+        padding: 28px 24px 32px;
+    }
+
+    .pieces-card {
+        padding: 16px;
     }
 
     .ledger-invoice-head {

@@ -1,26 +1,44 @@
 import { router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { getAppNavGroups } from '@/components/app-nav-groups';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { DemoIcon } from '@/components/demo-icon';
 import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuLabel,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useSidebar } from '@/components/ui/sidebar';
 import { toUrl } from '@/lib/utils';
-import type { BreadcrumbItem as BreadcrumbItemType } from '@/types';
+import type {
+    Auth,
+    BreadcrumbItem as BreadcrumbItemType,
+} from '@/types';
+
+const roleLabels: Record<Auth['user']['role'], string> = {
+    owner: 'Owner',
+    admin: 'Admin',
+    sales: 'Sales',
+};
+
+const previewRoles: Auth['user']['role'][] = ['owner', 'admin', 'sales'];
 
 export function AppSidebarHeader({
     breadcrumbs = [],
 }: {
     breadcrumbs?: BreadcrumbItemType[];
 }) {
-    const page = usePage<{
-        auth: {
-            permissions: string[];
-        };
-    }>();
+    const page = usePage<{ auth: Auth }>();
     const { auth } = page.props;
     const [pieceCode, setPieceCode] = useState('');
     const [pieceSearchError, setPieceSearchError] = useState('');
+    const [previewRole, setPreviewRole] = useState(auth.user.role);
     const { toggleSidebar } = useSidebar();
     const path = new URL(
         page.url,
@@ -47,7 +65,6 @@ export function AppSidebarHeader({
         : breadcrumbs.length > 0
           ? breadcrumbs
           : [];
-
     async function searchPiece(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
         const input = pieceCode.trim().toUpperCase();
@@ -94,22 +111,70 @@ export function AppSidebarHeader({
                 </Button>
                 <Breadcrumbs breadcrumbs={routeBreadcrumbs} />
             </div>
-            <div>
-                <form className="carpet-search" onSubmit={searchPiece}>
-                    <DemoIcon name="search" />
-                    <input
-                        type="search"
-                        placeholder="Search piece ID or barcode"
-                        aria-label="Search piece ID or barcode"
-                        value={pieceCode}
-                        onChange={(event) => setPieceCode(event.target.value)}
-                    />
-                </form>
-                {pieceSearchError && (
-                    <p className="ledger-validation-error" role="status">
-                        {pieceSearchError}
-                    </p>
-                )}
+            <div className="carpet-topbar-actions">
+                <div>
+                    <form className="carpet-search" onSubmit={searchPiece}>
+                        <DemoIcon name="search" />
+                        <input
+                            type="search"
+                            placeholder="Search piece ID or barcode"
+                            aria-label="Search piece ID or barcode"
+                            value={pieceCode}
+                            onChange={(event) =>
+                                setPieceCode(event.target.value)
+                            }
+                        />
+                    </form>
+                    {pieceSearchError && (
+                        <p className="ledger-validation-error" role="status">
+                            {pieceSearchError}
+                        </p>
+                    )}
+                </div>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <button
+                            type="button"
+                            className="carpet-view-as"
+                            aria-label={`Viewing as ${roleLabels[previewRole]} (preview only)`}
+                            title="Preview only. Your account permissions do not change."
+                        >
+                            <span>Viewing as</span>
+                            <strong>{roleLabels[previewRole]}</strong>
+                            <ChevronDown aria-hidden="true" />
+                        </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-52">
+                        <DropdownMenuLabel>
+                            Preview only
+                        </DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuRadioGroup
+                            value={previewRole}
+                            onValueChange={(value) => {
+                                const role = previewRoles.find(
+                                    (previewRole) => previewRole === value,
+                                );
+                                if (role) {
+                                    setPreviewRole(role);
+                                }
+                            }}
+                        >
+                            {previewRoles.map((role) => (
+                                <DropdownMenuRadioItem
+                                    key={role}
+                                    value={role}
+                                >
+                                    {roleLabels[role]}
+                                </DropdownMenuRadioItem>
+                            ))}
+                        </DropdownMenuRadioGroup>
+                        <DropdownMenuSeparator />
+                        <p className="px-2 py-1.5 text-xs text-muted-foreground">
+                            Your account permissions do not change.
+                        </p>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
         </header>
     );
