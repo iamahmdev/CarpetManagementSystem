@@ -11,6 +11,7 @@ return [
         'sales.create',
         'sales.view',
         'sales.void',
+        'reports.profit',
         'reports.receivables',
     ],
 

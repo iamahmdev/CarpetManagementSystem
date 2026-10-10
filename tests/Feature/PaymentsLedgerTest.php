@@ -51,11 +51,27 @@ afterEach(function () {
 });
 
 test('sales permissions and role grants match the ledger requirements', function () {
-    expect(config('permissions'))->toContain('reports.receivables')
+    expect(config('permissions'))->toContain('reports.profit', 'reports.receivables')
         ->and(config('roles.owner'))->toContain('sales.create', 'sales.view', 'sales.void', 'reports.receivables')
+        ->and(config('roles.owner'))->toContain('reports.profit')
         ->and(config('roles.admin'))->toContain('sales.create', 'sales.view', 'sales.void', 'reports.receivables')
+        ->and(config('roles.admin'))->not->toContain('reports.profit')
         ->and(config('roles.sales'))->toContain('sales.create', 'sales.view')
-        ->and(config('roles.sales'))->not->toContain('sales.void', 'reports.receivables');
+        ->and(config('roles.sales'))->not->toContain('sales.void', 'reports.receivables', 'reports.profit');
+});
+
+test('only owners can open the profit page', function () {
+    $this->actingAs(User::factory()->create(['role' => UserRole::OWNER]))
+        ->get(route('profit-report.index'))
+        ->assertOk();
+
+    $this->actingAs(User::factory()->create(['role' => UserRole::ADMIN]))
+        ->get(route('profit-report.index'))
+        ->assertForbidden();
+
+    $this->actingAs(User::factory()->create(['role' => UserRole::SALES]))
+        ->get(route('profit-report.index'))
+        ->assertForbidden();
 });
 
 test('users without sales permissions are forbidden on sales and customer workflows', function () {
@@ -151,6 +167,31 @@ test('a walk-in sale with a balance is rejected and excess invoice payment is no
     expect(Payment::query()->count())->toBe(0);
 });
 
+test('empty and zero payment amounts show the enter an amount message', function () {
+    $user = User::factory()->create(['role' => UserRole::OWNER]);
+    $customer = Customer::query()->create(['name' => 'Amount Validation Buyer']);
+    $sale = ledgerSale($user, $customer, ledgerLocation(), 74000, now()->toDateTimeString());
+
+    foreach (['', '0'] as $amount) {
+        $response = $this->actingAs($user)->post(route('sales.payments.store', $sale), [
+            'amount' => $amount,
+            'method' => 'cash',
+            'received_at' => '2026-10-08T12:00',
+        ]);
+        $response->assertSessionHasErrors('amount');
+        expect(session('errors')->first('amount'))->toBe('Enter an amount');
+    }
+
+    $response = $this->post(route('customers.payments.store', $customer), [
+        'amount' => '0',
+        'method' => 'cash',
+        'received_at' => '2026-10-08T12:00',
+    ]);
+    $response->assertSessionHasErrors('amount');
+    expect(session('errors')->first('amount'))->toBe('Enter an amount')
+        ->and(Payment::query()->count())->toBe(0);
+});
+
 test('on-account payments allocate oldest invoices first and receipt reversal preserves history', function () {
     $owner = User::factory()->create(['role' => UserRole::OWNER]);
     $customer = Customer::query()->create(['name' => 'Account Customer']);
@@ -218,6 +259,49 @@ test('admin can view receivables and ageing places a 45 day invoice in the 31 to
             ->where('metrics.amount_over_60_days', 0));
 });
 
+test('admin can reverse a payment receipt', function () {
+    $admin = User::factory()->create(['role' => UserRole::ADMIN]);
+    $customer = Customer::query()->create(['name' => 'Admin Reversal Buyer']);
+    $sale = ledgerSale($admin, $customer, ledgerLocation(), 25000, now()->toDateTimeString());
+    $receipt = app(PaymentService::class)->recordForSale($sale, 5000, 'cash', now(), $admin);
+
+    $this->actingAs($admin)
+        ->post(route('receipts.reverse', $receipt), ['reason' => 'Incorrect entry'])
+        ->assertRedirect();
+
+    expect(Payment::query()->where('receipt_number', $receipt)->value('status'))->toBe('reversed')
+        ->and($sale->fresh()->balanceDue())->toBe(25000);
+});
+
+test('voided invoices are excluded from receivables and on-account allocations', function () {
+    $owner = User::factory()->create(['role' => UserRole::OWNER]);
+    $customer = Customer::query()->create(['name' => 'Voided Allocation Buyer']);
+    $location = ledgerLocation();
+    $voidedSale = ledgerSale($owner, $customer, $location, 50000, now()->subDays(10)->toDateTimeString());
+    $voidedSale->update(['status' => 'void']);
+    $openSale = ledgerSale($owner, $customer, $location, 30000, now()->subDays(5)->toDateTimeString());
+
+    $this->actingAs($owner)
+        ->get(route('receivables.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('customers.0.invoices.0.id', $openSale->id)
+            ->where('customers.0.invoices', fn ($invoices) => $invoices->pluck('id')->all() === [$openSale->id]));
+
+    $receipt = app(PaymentService::class)->recordForCustomer(
+        $customer,
+        10000,
+        [],
+        'cash',
+        now(),
+        $owner,
+    );
+
+    expect(Payment::query()->where('receipt_number', $receipt)->pluck('sale_id')->all())
+        ->toBe([$openSale->id])
+        ->and(Payment::query()->where('sale_id', $voidedSale->id)->count())->toBe(0);
+});
+
 test('a completed payment never changes sales revenue or totals and voiding with active payment is blocked', function () {
     $owner = User::factory()->create(['role' => UserRole::OWNER]);
     $customer = Customer::query()->create(['name' => 'Stable Profit']);
@@ -236,26 +320,50 @@ test('a completed payment never changes sales revenue or totals and voiding with
     expect($sale->fresh()->status)->toBe('completed');
 });
 
-test('legacy JSON sale payments migrate idempotently without changing paid totals', function () {
+test('legacy migration preserves every sale paid amount and status including identical payments', function () {
     Schema::table('sales', function (Blueprint $table) {
         $table->json('payments')->nullable();
     });
     $user = User::factory()->create(['role' => UserRole::OWNER]);
     $customer = Customer::query()->create(['name' => 'Legacy Buyer']);
     $location = ledgerLocation();
-    $sale = ledgerSale($user, $customer, $location, 50000, now()->toDateTimeString());
-    DB::table('sales')->where('id', $sale->id)->update([
-        'payments' => json_encode([[
-            'amount' => 17000,
-            'method' => 'cash',
-            'at' => '2026-10-01 09:00:00',
-        ]], JSON_THROW_ON_ERROR),
-    ]);
+    $partialSale = ledgerSale($user, $customer, $location, 50000, now()->toDateTimeString());
+    $paidSale = ledgerSale($user, $customer, $location, 34000, now()->toDateTimeString());
+    $unpaidSale = ledgerSale($user, $customer, $location, 20000, now()->toDateTimeString());
+    $legacyPayments = [
+        $partialSale->id => [
+            ['amount' => 17000, 'method' => 'cash', 'at' => '2026-10-01 09:00:00'],
+            ['amount' => 17000, 'method' => 'cash', 'at' => '2026-10-01 09:00:00'],
+        ],
+        $paidSale->id => [
+            ['amount' => 34000, 'method' => 'bank_transfer', 'at' => '2026-10-02 09:00:00'],
+        ],
+        $unpaidSale->id => [],
+    ];
+    foreach ($legacyPayments as $saleId => $payments) {
+        DB::table('sales')->where('id', $saleId)->update([
+            'payments' => json_encode($payments, JSON_THROW_ON_ERROR),
+        ]);
+    }
+
+    $before = [];
+    foreach ($legacyPayments as $saleId => $payments) {
+        $sale = Sale::query()->findOrFail($saleId);
+        $paidAmount = array_sum(array_column($payments, 'amount'));
+        $before[$saleId] = [
+            'paid' => $paidAmount,
+            'status' => $paidAmount >= $sale->total ? 'Paid' : ($paidAmount > 0 ? 'Partial' : 'Unpaid'),
+        ];
+    }
 
     $migration = require database_path('migrations/2026_10_08_131000_migrate_legacy_sale_payments.php');
     $migration->up();
     $migration->up();
 
-    expect($sale->fresh()->paidAmount())->toBe(17000)
-        ->and(Payment::query()->where('sale_id', $sale->id)->count())->toBe(1);
+    foreach ($before as $saleId => $expected) {
+        $sale = Sale::query()->findOrFail($saleId);
+        expect($sale->paidAmount())->toBe($expected['paid'])
+            ->and($sale->paymentStatus())->toBe($expected['status']);
+    }
+    expect(Payment::query()->where('sale_id', $partialSale->id)->count())->toBe(2);
 });

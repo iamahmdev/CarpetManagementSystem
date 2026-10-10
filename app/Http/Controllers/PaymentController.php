@@ -26,6 +26,9 @@ class PaymentController extends Controller
             'note' => ['nullable', 'string', 'max:2000'],
             'allocations' => ['sometimes', 'array'],
             'allocations.*' => ['required', 'integer', 'min:0'],
+        ], [
+            'amount.required' => 'Enter an amount',
+            'amount.min' => 'Enter an amount',
         ]);
         $receivedAt = Carbon::parse($data['received_at']);
 
@@ -65,6 +68,9 @@ class PaymentController extends Controller
             'method' => ['required', Rule::in(PaymentService::METHODS)],
             'received_at' => ['required', 'date', 'before_or_equal:now'],
             'note' => ['nullable', 'string', 'max:2000'],
+        ], [
+            'amount.required' => 'Enter an amount',
+            'amount.min' => 'Enter an amount',
         ]);
         $receivedAt = Carbon::parse($data['received_at']);
         if ($request->user()->role === UserRole::SALES && $receivedAt->lt(now()->startOfMinute())) {

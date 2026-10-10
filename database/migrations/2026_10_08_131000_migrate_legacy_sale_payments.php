@@ -21,8 +21,8 @@ return new class extends Migration
                         ? $sale->payments
                         : json_decode($sale->payments, true, flags: JSON_THROW_ON_ERROR);
 
-                    foreach ($legacyPayments as $legacyPayment) {
-                        $legacyKey = $sale->id.':'.hash('sha256', serialize($legacyPayment));
+                    foreach ($legacyPayments as $index => $legacyPayment) {
+                        $legacyKey = $sale->id.':'.$index;
                         if (DB::table('payments')->where('legacy_key', $legacyKey)->exists()) {
                             continue;
                         }

@@ -87,6 +87,13 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:reports.receivables')
         ->name('receivables.index');
 
+    Route::get('profit', static fn () => Inertia::render('placeholder', [
+        'title' => 'Profit',
+        'subtitle' => 'Revenue against the landed cost of the pieces sold.',
+    ]))
+        ->middleware('permission:reports.profit')
+        ->name('profit-report.index');
+
     $placeholderPages = [
         [
             'path' => 'pieces',
@@ -117,12 +124,6 @@ Route::middleware('auth')->group(function () {
             'name' => 'container-report.index',
             'title' => 'Container profitability',
             'subtitle' => 'Which imports are paying back, based on real sales and landed cost.',
-        ],
-        [
-            'path' => 'profit',
-            'name' => 'profit-report.index',
-            'title' => 'Profit',
-            'subtitle' => 'Revenue against the landed cost of the pieces sold.',
         ],
     ];
 

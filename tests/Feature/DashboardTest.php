@@ -49,21 +49,27 @@ test('unimplemented navigation items render only their placeholder headers', fun
     ];
 
     foreach ($pages as $path => $title) {
-        $response = $this->actingAs($user)->get($path)->assertOk();
-        if ($path === '/new-sale') {
+        $response = $this->actingAs($user)->get($path);
+        if ($path === '/profit') {
+            $response->assertForbidden();
+        } elseif ($path === '/new-sale') {
+            $response->assertOk();
             $response->assertInertia(fn (Assert $page) => $page
                 ->component('sales/create')
                 ->has('customers')
                 ->has('locations'));
         } elseif ($path === '/sales') {
+            $response->assertOk();
             $response->assertInertia(fn (Assert $page) => $page
                 ->component('sales/index')
                 ->has('sales'));
         } elseif ($path === '/customers') {
+            $response->assertOk();
             $response->assertInertia(fn (Assert $page) => $page
                 ->component('customers/index')
                 ->has('customers'));
         } else {
+            $response->assertOk();
             $response->assertInertia(fn (Assert $page) => $page
                 ->component('placeholder')
                 ->where('title', $title)
