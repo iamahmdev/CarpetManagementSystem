@@ -53,6 +53,7 @@ return Application::configure(basePath: dirname(__DIR__))
                     str_starts_with($request->path(), 'containers') => 'Containers',
                     str_starts_with($request->path(), 'transfers') => 'Transfers',
                     str_starts_with($request->path(), 'sales') => 'Sales History',
+                    str_starts_with($request->path(), 'stock-report') => 'Stock by Location',
                     default => Str::headline(basename($request->path())),
                 },
             ])->toResponse($request)->setStatusCode($status);

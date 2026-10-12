@@ -46,7 +46,7 @@ test('unimplemented navigation items render their placeholder headers', function
 
     foreach ($pages as $path => $title) {
         $response = $this->actingAs($user)->get($path);
-        if ($path === '/profit') {
+        if ($path === '/profit' || $path === '/stock-report') {
             $response->assertForbidden();
         } elseif ($path === '/new-sale') {
             $response->assertOk();

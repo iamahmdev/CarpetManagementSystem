@@ -95,11 +95,15 @@ export function getAppNavGroups(permissions: string[]): NavGroup[] {
         {
             title: 'Reports',
             items: [
-                {
-                    title: 'Stock by Location',
-                    href: '/stock-report',
-                    icon: 'stock',
-                },
+                ...(permissions.includes('reports.stock')
+                    ? [
+                          {
+                              title: 'Stock by Location',
+                              href: '/stock-report',
+                              icon: 'stock' as const,
+                          },
+                      ]
+                    : []),
                 ...(permissions.includes('reports.profit')
                     ? [
                           {

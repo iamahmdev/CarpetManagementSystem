@@ -154,6 +154,7 @@ test('each configured permission is granted to the correct roles', function () {
         'sales.create',
         'sales.view',
         'sales.void',
+        'reports.stock',
         'reports.profit',
         'reports.receivables',
     ])
@@ -169,6 +170,7 @@ test('each configured permission is granted to the correct roles', function () {
             'sales.create',
             'sales.view',
             'sales.void',
+            'reports.stock',
             'reports.profit',
             'reports.receivables',
         ])
@@ -182,6 +184,7 @@ test('each configured permission is granted to the correct roles', function () {
             'sales.create',
             'sales.view',
             'sales.void',
+            'reports.stock',
             'reports.receivables',
         ])
         ->and(config('roles.sales'))->toBe(['catalog.view', 'stock.view', 'sales.create', 'sales.view']);

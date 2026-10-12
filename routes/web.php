@@ -10,6 +10,7 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PieceController;
 use App\Http\Controllers\ReceivablesController;
 use App\Http\Controllers\SaleController;
+use App\Http\Controllers\StockReportController;
 use App\Http\Controllers\TransferController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -126,21 +127,9 @@ Route::middleware('auth')->group(function () {
         Route::post('transfers/{transfer}/receive', [TransferController::class, 'receive'])->name('transfers.receive');
     });
 
-    $placeholderPages = [
-        [
-            'path' => 'stock-report',
-            'name' => 'stock-report.index',
-            'title' => 'Stock by location',
-            'subtitle' => 'What is on hand right now, at each warehouse and display.',
-        ],
-    ];
-
-    foreach ($placeholderPages as $page) {
-        Route::get($page['path'], static fn () => Inertia::render('placeholder', [
-            'title' => $page['title'],
-            'subtitle' => $page['subtitle'],
-        ]))->name($page['name']);
-    }
+    Route::get('stock-report', [StockReportController::class, 'index'])
+        ->middleware('permission:reports.stock')
+        ->name('stock-report.index');
 });
 
 require __DIR__.'/settings.php';

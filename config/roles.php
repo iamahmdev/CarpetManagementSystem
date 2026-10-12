@@ -15,6 +15,7 @@ return [
         'sales.create',
         'sales.view',
         'sales.void',
+        'reports.stock',
         'reports.profit',
         'reports.receivables',
     ],
@@ -30,6 +31,7 @@ return [
         'sales.create',
         'sales.view',
         'sales.void',
+        'reports.stock',
         'reports.receivables',
     ],
 
