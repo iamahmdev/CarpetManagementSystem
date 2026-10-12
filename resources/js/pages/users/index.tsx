@@ -77,6 +77,8 @@ export default function UsersIndex() {
                                                     'View pieces and stock',
                                                 'containers.manage':
                                                     'Receive containers',
+                                                'transfers.manage':
+                                                    'Transfer stock',
                                                 'costs.view':
                                                     'See cost prices',
                                                 'reports.profit':

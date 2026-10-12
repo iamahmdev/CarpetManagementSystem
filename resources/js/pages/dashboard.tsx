@@ -16,6 +16,8 @@ type Props = {
     auth: Auth;
     can_manage_containers: boolean;
     imports: ImportRow[];
+    pieces_in_transit: number;
+    transfers_pending: number;
 };
 
 const statusLabels: Record<ImportRow['status'], string> = {
@@ -31,8 +33,13 @@ const statusClasses: Record<ImportRow['status'], string> = {
 };
 
 export default function Dashboard() {
-    const { auth, can_manage_containers: canManageContainers, imports } =
-        usePage<Props>().props;
+    const {
+        auth,
+        can_manage_containers: canManageContainers,
+        imports,
+        pieces_in_transit: piecesInTransit = 0,
+        transfers_pending: transfersPending = 0,
+    } = usePage<Props>().props;
 
     return (
         <>
@@ -81,8 +88,18 @@ export default function Dashboard() {
                     </section>
                 )}
                 <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-border" />
+                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 bg-card p-5 dark:border-sidebar-border flex flex-col justify-between">
+                        <div>
+                            <div className="text-sm font-medium text-muted-foreground">
+                                Pieces in transit
+                            </div>
+                            <div className="mt-2 text-3xl font-bold">
+                                {piecesInTransit}
+                            </div>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                            {transfersPending} transfers pending
+                        </div>
                     </div>
                     <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
                         <PlaceholderPattern className="absolute inset-0 size-full stroke-border" />

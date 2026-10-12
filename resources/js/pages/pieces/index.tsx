@@ -13,7 +13,9 @@ import { PieceBarcode } from '@/components/piece-barcode';
 type PieceRow = {
     id: number;
     code: string;
+    carpet: string;
     display_name: string;
+    size: string;
     location: string;
     status: string;
     price: number;

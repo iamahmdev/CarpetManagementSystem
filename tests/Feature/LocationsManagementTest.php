@@ -191,6 +191,7 @@ test('the locations sidebar permission is owner only', function () {
                 'catalog.manage',
                 'stock.view',
                 'containers.manage',
+                'transfers.manage',
                 'sales.create',
                 'sales.view',
                 'sales.void',

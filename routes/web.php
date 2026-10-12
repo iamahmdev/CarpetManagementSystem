@@ -10,6 +10,7 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PieceController;
 use App\Http\Controllers\ReceivablesController;
 use App\Http\Controllers\SaleController;
+use App\Http\Controllers\TransferController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -118,13 +119,14 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:reports.profit')
         ->name('container-report.index');
 
+    Route::middleware('permission:transfers.manage')->group(function () {
+        Route::get('transfers', [TransferController::class, 'index'])->name('transfers.index');
+        Route::get('transfers/pieces', [TransferController::class, 'pieces'])->name('transfers.pieces');
+        Route::post('transfers', [TransferController::class, 'store'])->name('transfers.store');
+        Route::post('transfers/{transfer}/receive', [TransferController::class, 'receive'])->name('transfers.receive');
+    });
+
     $placeholderPages = [
-        [
-            'path' => 'transfers',
-            'name' => 'transfers.index',
-            'title' => 'Transfers',
-            'subtitle' => 'Move pieces from a warehouse to its display. Stock only changes location when the other side confirms.',
-        ],
         [
             'path' => 'stock-report',
             'name' => 'stock-report.index',

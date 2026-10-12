@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Container;
+use App\Models\Piece;
+use App\Models\Transfer;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -32,9 +34,14 @@ class DashboardController extends Controller
                 ->all()
             : [];
 
+        $piecesInTransit = Piece::query()->where('status', 'in_transit')->count();
+        $transfersPending = Transfer::query()->where('status', 'in_transit')->count();
+
         return Inertia::render('dashboard', [
             'can_manage_containers' => $canManageContainers,
             'imports' => $imports,
+            'pieces_in_transit' => $piecesInTransit,
+            'transfers_pending' => $transfersPending,
         ]);
     }
 }

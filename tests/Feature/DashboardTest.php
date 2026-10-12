@@ -37,7 +37,6 @@ test('unknown routes render the Inertia not found page', function () {
 test('unimplemented navigation items render their placeholder headers', function () {
     $user = User::factory()->create(['role' => UserRole::SALES]);
     $pages = [
-        '/transfers' => 'Transfers',
         '/new-sale' => 'New sale',
         '/sales' => 'Sales history',
         '/customers' => 'Customers',
@@ -74,6 +73,7 @@ test('unimplemented navigation items render their placeholder headers', function
         }
     }
 
+    $this->actingAs($user)->get('/transfers')->assertForbidden();
     $this->actingAs($user)->get('/containers')->assertForbidden();
     $this->actingAs($user)->get('/container-report')->assertForbidden();
 });

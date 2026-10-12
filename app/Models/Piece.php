@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
@@ -67,6 +68,11 @@ class Piece extends Model
     public function movements(): HasMany
     {
         return $this->hasMany(PieceMovement::class);
+    }
+
+    public function transfers(): BelongsToMany
+    {
+        return $this->belongsToMany(Transfer::class, 'transfer_pieces');
     }
 
     public function saleItem(): HasOne

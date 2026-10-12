@@ -53,11 +53,15 @@ export function getAppNavGroups(permissions: string[]): NavGroup[] {
                           },
                       ]
                     : []),
-                {
-                    title: 'Transfers',
-                    href: '/transfers',
-                    icon: 'transfers',
-                },
+                ...(permissions.includes('transfers.manage')
+                    ? [
+                          {
+                              title: 'Transfers',
+                              href: '/transfers',
+                              icon: 'transfers' as const,
+                          },
+                      ]
+                    : []),
             ],
         },
         {
