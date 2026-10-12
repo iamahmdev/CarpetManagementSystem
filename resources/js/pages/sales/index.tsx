@@ -176,7 +176,7 @@ export default function SalesIndex({
         <>
             <Head title="Sales history" />
 
-            <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto">
+            <div className="flex flex-1 flex-col w-full p-6 md:p-8 space-y-6">
                 {/* Page Header (No header buttons) */}
                 <div>
                     <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
@@ -203,7 +203,7 @@ export default function SalesIndex({
                     )}
 
                     {/* Single card containing search box and table */}
-                    <div className="bg-white rounded-xl border border-slate-200/80 p-6 shadow-xs space-y-6">
+                    <div className="w-full bg-white rounded-xl border border-slate-200/80 p-6 shadow-xs space-y-6">
                         {/* Search Input (max-width 320px) */}
                         <div className="max-w-[320px]">
                             <Input
@@ -216,7 +216,7 @@ export default function SalesIndex({
                         </div>
 
                         {/* Table */}
-                        <div className="overflow-x-auto">
+                        <div className="w-full overflow-x-auto">
                             <table className="w-full text-sm">
                                 <thead>
                                     <tr className="border-b border-slate-100 text-left text-xs font-semibold text-slate-500">
