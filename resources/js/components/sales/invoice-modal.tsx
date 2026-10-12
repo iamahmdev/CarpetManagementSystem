@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -77,15 +77,35 @@ export function InvoiceModal({
     const [isSavingPayment, setIsSavingPayment] = useState(false);
     const [isVoiding, setIsVoiding] = useState(false);
 
+    const balanceDue =
+        sale.status.toLowerCase() === 'void'
+            ? 0
+            : Math.max(0, sale.total - (sale.paid ?? 0));
+
+    useEffect(() => {
+        if (sale) {
+            const due =
+                sale.status.toLowerCase() === 'void'
+                    ? 0
+                    : Math.max(0, sale.total - (sale.paid ?? 0));
+            setPayAmount(String(due));
+            setPayMethod('cash');
+            setPayError('');
+        }
+    }, [sale?.id, sale?.balance, sale?.total, sale?.paid, sale?.status]);
+
     function formatDisplayDate(isoString: string): string {
         try {
             const date = new Date(isoString);
-            const yyyy = date.getFullYear();
-            const mm = String(date.getMonth() + 1).padStart(2, '0');
-            const dd = String(date.getDate()).padStart(2, '0');
+            const months = [
+                'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec',
+            ];
+            const day = date.getDate();
+            const month = months[date.getMonth()];
             const hh = String(date.getHours()).padStart(2, '0');
             const min = String(date.getMinutes()).padStart(2, '0');
-            return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+            return `${day} ${month}, ${hh}:${min}`;
         } catch {
             return isoString;
         }
@@ -94,10 +114,13 @@ export function InvoiceModal({
     function formatPaymentDate(isoString: string): string {
         try {
             const date = new Date(isoString);
-            const yyyy = date.getFullYear();
-            const mm = String(date.getMonth() + 1).padStart(2, '0');
-            const dd = String(date.getDate()).padStart(2, '0');
-            return `${yyyy}-${mm}-${dd}`;
+            const months = [
+                'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec',
+            ];
+            const day = date.getDate();
+            const month = months[date.getMonth()];
+            return `${day} ${month}`;
         } catch {
             return isoString;
         }
@@ -114,8 +137,8 @@ export function InvoiceModal({
             return;
         }
 
-        if (num > sale.balance) {
-            setPayError('The amount cannot exceed the balance.');
+        if (num > balanceDue) {
+            setPayError('The amount cannot be more than the balance due.');
             return;
         }
 
@@ -143,7 +166,11 @@ export function InvoiceModal({
 
             if (data.sale) {
                 onPaymentRecorded(data.message || `Payment of ${formatMoney(num)} recorded`, data.sale);
-                setPayAmount(String(data.sale.balance));
+                const newDue =
+                    data.sale.status.toLowerCase() === 'void'
+                        ? 0
+                        : Math.max(0, data.sale.total - (data.sale.paid ?? 0));
+                setPayAmount(String(newDue));
             }
         } catch {
             setPayError('Unable to record payment.');
@@ -186,24 +213,58 @@ export function InvoiceModal({
 
     // Badge logic: "Void" (red) if voided; otherwise "Paid" (green) if paid >= total, "Partial" (amber) if paid is above 0, "Unpaid" (red)
     let badgeText = 'Unpaid';
-    let badgeColorClass = 'bg-red-100 text-red-800 border-red-300';
+    let badgeColorClass = 'bg-[#fce8e6] text-[#c5221f]';
 
     if (sale.status.toLowerCase() === 'void') {
         badgeText = 'Void';
-        badgeColorClass = 'bg-red-100 text-red-800 border-red-300';
+        badgeColorClass = 'bg-[#fce8e6] text-[#c5221f]';
     } else if (sale.paid >= sale.total) {
         badgeText = 'Paid';
-        badgeColorClass = 'bg-emerald-100 text-emerald-800 border-emerald-300';
+        badgeColorClass = 'bg-[#e6f4ea] text-[#137333]';
     } else if (sale.paid > 0) {
         badgeText = 'Partial';
-        badgeColorClass = 'bg-amber-100 text-amber-800 border-amber-300';
+        badgeColorClass = 'bg-[#fef7e0] text-[#b06000]';
     }
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="max-w-2xl p-6 print:p-0 print:border-none print:shadow-none print:max-w-none text-slate-900 bg-white">
-                <DialogHeader className="sr-only">
-                    <DialogTitle>{sale.invoice_number}</DialogTitle>
+            <DialogContent className="max-w-2xl p-6 text-slate-900 bg-white">
+                <style>{`
+                    @media print {
+                        body * {
+                            visibility: hidden !important;
+                        }
+                        [data-slot="dialog-content"],
+                        [data-slot="dialog-content"] * {
+                            visibility: visible !important;
+                        }
+                        [data-slot="dialog-content"] {
+                            position: absolute !important;
+                            inset: 0 auto auto 0 !important;
+                            transform: none !important;
+                            width: 100% !important;
+                            max-width: none !important;
+                            margin: 0 !important;
+                            padding: 0 !important;
+                            border: none !important;
+                            box-shadow: none !important;
+                            background: white !important;
+                        }
+                        [data-slot="dialog-overlay"],
+                        [data-slot="dialog-header"],
+                        [data-slot="dialog-content"] > button,
+                        .print-hidden {
+                            display: none !important;
+                            visibility: hidden !important;
+                        }
+                    }
+                `}</style>
+
+                {/* Dialog header titled with invoice number */}
+                <DialogHeader className="border-b border-slate-100 pb-3 mb-2 print-hidden">
+                    <DialogTitle className="text-lg font-bold text-slate-900">
+                        {sale.invoice_number}
+                    </DialogTitle>
                 </DialogHeader>
 
                 <div className="printable-invoice space-y-6">
@@ -214,7 +275,6 @@ export function InvoiceModal({
                             <p className="text-sm text-slate-600">
                                 {sale.location.name}, {sale.location.city}
                             </p>
-                            <p className="text-xs text-slate-400 mt-1">{sale.invoice_number}</p>
                         </div>
                         <div className="text-right">
                             <p className="text-sm text-slate-600 font-medium">
@@ -222,7 +282,7 @@ export function InvoiceModal({
                             </p>
                             <div className="mt-1">
                                 <span
-                                    className={`inline-block px-2.5 py-0.5 text-xs font-semibold rounded-full border ${badgeColorClass}`}
+                                    className={`inline-block px-3 py-1 text-xs font-semibold rounded-full ${badgeColorClass}`}
                                 >
                                     {badgeText}
                                 </span>
@@ -238,7 +298,7 @@ export function InvoiceModal({
                                 {sale.customer
                                     ? `${sale.customer.name}${
                                           sale.customer.phone && sale.customer.phone !== '-'
-                                              ? ` (${sale.customer.phone})`
+                                              ? `, ${sale.customer.phone}`
                                               : ''
                                       }`
                                     : 'Walk-in customer'}
@@ -263,7 +323,7 @@ export function InvoiceModal({
                             <tbody className="divide-y divide-slate-200">
                                 {sale.items.map((item, index) => (
                                     <tr key={index} className="hover:bg-slate-50">
-                                        <td className="py-2.5 px-3 font-bold text-slate-900 font-mono">
+                                        <td className="py-2.5 px-3 font-bold text-slate-900">
                                             {item.piece_code}
                                         </td>
                                         <td className="py-2.5 px-3 text-slate-700">{item.name}</td>
@@ -299,17 +359,15 @@ export function InvoiceModal({
                             </div>
                             <div className="flex justify-between font-bold text-slate-900 border-t pt-1.5">
                                 <span>Balance due</span>
-                                <span className={sale.balance > 0 ? 'text-red-600 font-bold' : ''}>
-                                    {formatMoney(sale.balance)}
-                                </span>
+                                <span>{formatMoney(balanceDue)}</span>
                             </div>
                         </div>
                     </div>
 
                     {/* Payments line if payments exist */}
                     {sale.payments && sale.payments.length > 0 && (
-                        <div className="text-xs text-slate-600 bg-slate-50 p-2.5 rounded border border-slate-200">
-                            <strong>Payments: </strong>
+                        <div className="text-sm text-slate-700 border-t border-slate-100 pt-3">
+                            <span className="font-medium">Payments: </span>
                             {sale.payments
                                 .map(
                                     (p) =>
@@ -322,8 +380,8 @@ export function InvoiceModal({
                     )}
 
                     {/* Record a payment section (only if Balance due > 0 and user has sales.create, NOT PRINTED) */}
-                    {sale.balance > 0 && canCreatePayment && sale.status.toLowerCase() !== 'void' && (
-                        <div className="print:hidden border border-slate-200 rounded-md p-4 bg-slate-50 space-y-3">
+                    {balanceDue > 0 && canCreatePayment && (
+                        <div className="print-hidden border border-slate-200 rounded-md p-4 bg-slate-50 space-y-3">
                             <h4 className="text-sm font-semibold text-slate-900">Record a payment</h4>
                             <form onSubmit={handleRecordPayment} className="space-y-3">
                                 <div className="grid grid-cols-2 gap-3">
@@ -334,8 +392,9 @@ export function InvoiceModal({
                                         <Input
                                             id="record-payment-amount"
                                             type="number"
-                                            min="1"
-                                            max={sale.balance}
+                                            min="0"
+                                            step="500"
+                                            max={balanceDue}
                                             value={payAmount}
                                             onChange={(e) => setPayAmount(e.target.value)}
                                             className="mt-1 bg-white h-9 text-sm"
@@ -374,7 +433,7 @@ export function InvoiceModal({
                     )}
 
                     {/* Buttons: Void sale (red, owner/admin and completed), Print, Close (NOT PRINTED) */}
-                    <div className="print:hidden flex items-center justify-between border-t pt-4">
+                    <div className="print-hidden flex items-center justify-between border-t pt-4">
                         <div>
                             {canVoid && sale.status.toLowerCase() !== 'void' && (
                                 <Button

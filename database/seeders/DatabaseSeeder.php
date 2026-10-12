@@ -27,5 +27,6 @@ class DatabaseSeeder extends Seeder
         $this->call(CarpetSeeder::class);
         $this->call(ContainerSeeder::class);
         $this->call(TransferSeeder::class);
+        $this->call(SaleSeeder::class);
     }
 }

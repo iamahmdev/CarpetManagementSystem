@@ -20,11 +20,14 @@ class SaleController extends Controller
 {
     public function index(Request $request): Response
     {
+        $user = $request->user();
+        $isSalesRole = $user->role->value === 'sales';
+
         $sales = Sale::query()
-            ->with(['customer', 'location', 'payments'])
+            ->with(['customer', 'location', 'payments', 'creator', 'items'])
             ->when(
-                $request->user()->role->value === 'sales',
-                fn ($query) => $query->where('created_by', $request->user()->id),
+                $isSalesRole,
+                fn ($query) => $query->where('created_by', $user->id),
             )
             ->orderByDesc('sold_at')
             ->orderByDesc('id')
@@ -32,16 +35,49 @@ class SaleController extends Controller
             ->map(fn (Sale $sale): array => [
                 'id' => $sale->id,
                 'invoice_number' => $sale->invoice_number,
-                'customer' => $sale->customer?->name ?? 'Walk-in',
-                'location' => $sale->location->name,
+                'has_customer' => $sale->customer !== null,
+                'customer' => $sale->customer ? [
+                    'id' => $sale->customer->id,
+                    'name' => $sale->customer->name,
+                    'phone' => $sale->customer->phone,
+                    'city' => $sale->customer->city,
+                ] : null,
+                'customer_name' => $sale->customer?->name ?? 'Walk-in',
+                'location' => [
+                    'id' => $sale->location->id,
+                    'name' => $sale->location->name,
+                    'city' => $sale->location->city,
+                ],
+                'sold_by' => $sale->creator?->name ?? 'User',
                 'sold_at' => $sale->sold_at->toIso8601String(),
+                'subtotal' => $sale->subtotal,
+                'discount' => $sale->discount,
                 'total' => $sale->total,
                 'paid' => $sale->paidAmount(),
                 'balance' => $sale->balanceDue(),
                 'status' => $sale->paymentStatus(),
+                'piece_codes' => $sale->items->pluck('piece_code')->all(),
+                'items' => $sale->items->map(fn ($item): array => [
+                    'id' => $item->id,
+                    'piece_id' => $item->piece_id,
+                    'piece_code' => $item->piece_code,
+                    'name' => $item->name,
+                    'unit_price' => $item->unit_price,
+                ]),
+                'payments' => $sale->payments->where('status', 'active')->map(fn ($payment): array => [
+                    'id' => $payment->id,
+                    'amount' => $payment->amount,
+                    'method' => $payment->method,
+                    'received_at' => $payment->received_at->toIso8601String(),
+                ])->values(),
             ]);
 
-        return Inertia::render('sales/index', ['sales' => $sales]);
+        return Inertia::render('sales/index', [
+            'sales' => $sales,
+            'is_sales_role' => $isSalesRole,
+            'can_void' => in_array('sales.void', config('roles.'.$user->role->value, []), true),
+            'can_create_payment' => in_array('sales.create', config('roles.'.$user->role->value, []), true),
+        ]);
     }
 
     public function create(Request $request): Response
