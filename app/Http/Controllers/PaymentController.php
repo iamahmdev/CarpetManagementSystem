@@ -8,6 +8,7 @@ use App\Models\PaymentAudit;
 use App\Models\Sale;
 use App\Services\PaymentService;
 use App\UserRole;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -57,7 +58,7 @@ class PaymentController extends Controller
         return to_route('receipts.show', ['receipt' => $receiptNumber]);
     }
 
-    public function storeForSale(Request $request, Sale $sale, PaymentService $payments): RedirectResponse
+    public function storeForSale(Request $request, Sale $sale, PaymentService $payments): RedirectResponse|JsonResponse
     {
         if ($request->user()->role === UserRole::SALES && $sale->created_by !== $request->user()->id) {
             abort(403);
@@ -66,14 +67,27 @@ class PaymentController extends Controller
         $data = $request->validate([
             'amount' => ['required', 'integer', 'min:1'],
             'method' => ['required', Rule::in(PaymentService::METHODS)],
-            'received_at' => ['required', 'date', 'before_or_equal:now'],
+            'received_at' => ['sometimes', 'nullable', 'date', 'before_or_equal:now'],
             'note' => ['nullable', 'string', 'max:2000'],
         ], [
             'amount.required' => 'Enter an amount',
             'amount.min' => 'Enter an amount',
         ]);
-        $receivedAt = Carbon::parse($data['received_at']);
+
+        if ((int) $data['amount'] > $sale->balanceDue()) {
+            if ($request->wantsJson()) {
+                return response()->json(['message' => 'The amount cannot exceed the balance.'], 422);
+            }
+
+            return back()->withErrors(['amount' => 'The amount cannot exceed the balance.']);
+        }
+
+        $receivedAt = $request->filled('received_at') ? Carbon::parse($data['received_at']) : now();
         if ($request->user()->role === UserRole::SALES && $receivedAt->lt(now()->startOfMinute())) {
+            if ($request->wantsJson()) {
+                return response()->json(['message' => 'Only Owner and Admin can back-date payments.'], 422);
+            }
+
             return back()->withErrors(['received_at' => 'Only Owner and Admin can back-date payments.']);
         }
 
@@ -86,9 +100,58 @@ class PaymentController extends Controller
             isset($data['note']) ? trim($data['note']) : null,
         );
 
+        $amountFormatted = self::money((int) $data['amount']);
+        $message = "Payment of {$amountFormatted} recorded";
+
+        if ($request->wantsJson()) {
+            $freshSale = $sale->fresh(['customer', 'location', 'items.piece', 'payments.receiver', 'creator']);
+
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'receipt_number' => $receiptNumber,
+                'sale' => [
+                    'id' => $freshSale->id,
+                    'invoice_number' => $freshSale->invoice_number,
+                    'customer' => $freshSale->customer ? [
+                        'id' => $freshSale->customer->id,
+                        'name' => $freshSale->customer->name,
+                        'phone' => $freshSale->customer->phone,
+                        'city' => $freshSale->customer->city,
+                    ] : null,
+                    'location' => [
+                        'id' => $freshSale->location->id,
+                        'name' => $freshSale->location->name,
+                        'city' => $freshSale->location->city,
+                    ],
+                    'sold_by' => $freshSale->creator?->name ?? 'User',
+                    'sold_at' => $freshSale->sold_at->toIso8601String(),
+                    'subtotal' => $freshSale->subtotal,
+                    'discount' => $freshSale->discount,
+                    'total' => $freshSale->total,
+                    'paid' => $freshSale->paidAmount(),
+                    'balance' => $freshSale->balanceDue(),
+                    'status' => $freshSale->paymentStatus(),
+                    'items' => $freshSale->items->map(fn ($item): array => [
+                        'id' => $item->id,
+                        'piece_id' => $item->piece_id,
+                        'piece_code' => $item->piece_code,
+                        'name' => $item->name,
+                        'unit_price' => $item->unit_price,
+                    ]),
+                    'payments' => $freshSale->payments->where('status', 'active')->map(fn ($payment): array => [
+                        'id' => $payment->id,
+                        'amount' => $payment->amount,
+                        'method' => $payment->method,
+                        'received_at' => $payment->received_at->toIso8601String(),
+                    ])->values(),
+                ],
+            ]);
+        }
+
         Inertia::flash('toast', [
             'type' => 'success',
-            'message' => 'Payment of '.self::money((int) $data['amount']).' recorded',
+            'message' => $message,
         ]);
 
         return to_route('receipts.show', ['receipt' => $receiptNumber]);

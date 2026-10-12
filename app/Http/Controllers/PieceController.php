@@ -124,6 +124,7 @@ class PieceController extends Controller
             'color' => $piece->carpet->color,
             'material' => $piece->carpet->material,
             'grade' => $piece->grade,
+            'location_id' => $piece->location_id,
             'location' => $piece->location->name,
             'location_type' => $piece->location->type,
             'price' => $piece->effectivePrice(),

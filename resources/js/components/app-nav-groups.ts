@@ -67,11 +67,15 @@ export function getAppNavGroups(permissions: string[]): NavGroup[] {
         {
             title: 'Sales',
             items: [
-                {
-                    title: 'New Sale',
-                    href: '/new-sale',
-                    icon: 'sale',
-                },
+                ...(permissions.includes('sales.create')
+                    ? [
+                          {
+                              title: 'New Sale',
+                              href: '/new-sale',
+                              icon: 'sale' as const,
+                          },
+                      ]
+                    : []),
                 ...(permissions.includes('sales.view')
                     ? [
                           {

@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $this->call(LocationSeeder::class);
+        $this->call(CustomerSeeder::class);
         $this->call(CarpetSeeder::class);
         $this->call(ContainerSeeder::class);
         $this->call(TransferSeeder::class);

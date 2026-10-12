@@ -79,6 +79,8 @@ class SaleController extends Controller
                 ['value' => 'mobile_wallet', 'label' => 'Mobile wallet'],
             ],
             'selected_customer_id' => $request->integer('customer_id') ?: null,
+            'can_void' => in_array('sales.void', config('roles.'.$request->user()->role->value, []), true),
+            'user_name' => $request->user()->name,
         ]);
     }
 
@@ -90,7 +92,12 @@ class SaleController extends Controller
             'existing_piece_ids' => ['sometimes', 'array'],
             'existing_piece_ids.*' => ['integer'],
         ]);
-        $code = Piece::normalizeCode($data['code']);
+        $rawCode = trim($data['code']);
+        if ($rawCode === '') {
+            return response()->json(['message' => 'Empty input'], 422);
+        }
+
+        $code = Piece::normalizeCode($rawCode);
         $piece = Piece::query()
             ->with(['carpet', 'location'])
             ->where('code', $code)
@@ -98,12 +105,6 @@ class SaleController extends Controller
 
         if (! $piece) {
             return response()->json(['message' => "No piece with ID {$code}"], 404);
-        }
-
-        if (in_array($piece->id, array_map('intval', $data['existing_piece_ids'] ?? []), true)) {
-            return response()->json([
-                'message' => "{$piece->code} is already on the invoice",
-            ], 422);
         }
 
         if ($piece->status !== 'in_stock') {
@@ -128,17 +129,27 @@ class SaleController extends Controller
             ], 422);
         }
 
+        if (in_array($piece->id, array_map('intval', $data['existing_piece_ids'] ?? []), true)) {
+            return response()->json([
+                'message' => "{$piece->code} is already on the invoice",
+            ], 422);
+        }
+
         return response()->json([
             'piece' => [
                 'id' => $piece->id,
                 'code' => $piece->code,
                 'name' => $piece->displayName(),
                 'price' => $piece->effectivePrice(),
+                'carpet' => $piece->carpet->name,
+                'size' => $piece->carpet->size,
+                'design' => $piece->carpet->design,
+                'location_id' => $piece->location_id,
             ],
         ]);
     }
 
-    public function store(Request $request, PaymentService $payments, PieceService $pieces): RedirectResponse
+    public function store(Request $request, PaymentService $payments, PieceService $pieces): RedirectResponse|JsonResponse
     {
         $data = $request->validate([
             'customer_id' => ['nullable', 'integer', 'exists:customers,id'],
@@ -153,9 +164,12 @@ class SaleController extends Controller
             'items' => ['required', 'array', 'min:1'],
             'items.*.piece_id' => ['required', 'integer', 'distinct', 'exists:pieces,id'],
             'items.*.unit_price' => ['required', 'integer', 'min:0'],
+        ], [
+            'items.required' => 'Add at least one piece',
+            'items.min' => 'Add at least one piece',
         ]);
 
-        return DB::transaction(function () use ($data, $request, $payments, $pieces): RedirectResponse {
+        return DB::transaction(function () use ($data, $request, $payments, $pieces): RedirectResponse|JsonResponse {
             $pieceIds = collect($data['items'])->pluck('piece_id');
             $selectedPieces = Piece::query()
                 ->with('carpet')
@@ -165,6 +179,10 @@ class SaleController extends Controller
                 ->keyBy('id');
 
             if ($selectedPieces->count() !== $pieceIds->unique()->count()) {
+                if ($request->wantsJson()) {
+                    return response()->json(['message' => 'One or more selected pieces are no longer available.'], 422);
+                }
+
                 return back()->withErrors(['items' => 'One or more selected pieces are no longer available.'])->withInput();
             }
 
@@ -174,6 +192,10 @@ class SaleController extends Controller
                     || $piece->location_id !== (int) $data['location_id']
                     || $piece->location()->where('type', 'display')->where('active', true)->doesntExist()
                 ) {
+                    if ($request->wantsJson()) {
+                        return response()->json(['message' => 'Only in-stock pieces at the selected display can be sold.'], 422);
+                    }
+
                     return back()->withErrors(['items' => 'Only in-stock pieces at the selected display can be sold.'])->withInput();
                 }
             }
@@ -184,6 +206,10 @@ class SaleController extends Controller
             $paid = min(max(0, (int) ($data['paid_now'] ?? $total)), $total);
 
             if ($paid < $total && empty($data['customer_id'])) {
+                if ($request->wantsJson()) {
+                    return response()->json(['message' => 'Choose a customer to record a balance due'], 422);
+                }
+
                 return back()->withErrors(['customer_id' => 'Choose a customer to record a balance due'])->withInput();
             }
 
@@ -191,18 +217,19 @@ class SaleController extends Controller
             DB::table('document_sequences')->insertOrIgnore([
                 'document_type' => 'invoice',
                 'year' => $year,
-                'last_number' => 0,
+                'last_number' => 1040,
             ]);
             $sequence = DB::table('document_sequences')
                 ->where('document_type', 'invoice')
                 ->where('year', $year)
                 ->lockForUpdate()
                 ->first();
-            $invoiceNumber = sprintf('INV-%d-%04d', $year, $sequence->last_number + 1);
+            $nextNumber = max(1040, $sequence->last_number) + 1;
+            $invoiceNumber = sprintf('INV-%d-%04d', $year, $nextNumber);
             DB::table('document_sequences')
                 ->where('document_type', 'invoice')
                 ->where('year', $year)
-                ->update(['last_number' => $sequence->last_number + 1]);
+                ->update(['last_number' => $nextNumber]);
 
             $sale = Sale::query()->create([
                 'invoice_number' => $invoiceNumber,
@@ -234,17 +261,104 @@ class SaleController extends Controller
                 $payments->recordForSale($sale, $paid, $data['method'], now(), $request->user());
             }
 
+            if ($request->wantsJson()) {
+                $sale->load(['customer', 'location', 'items.piece', 'payments.receiver', 'creator']);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => "Sale {$sale->invoice_number} completed",
+                    'sale' => [
+                        'id' => $sale->id,
+                        'invoice_number' => $sale->invoice_number,
+                        'customer' => $sale->customer ? [
+                            'id' => $sale->customer->id,
+                            'name' => $sale->customer->name,
+                            'phone' => $sale->customer->phone,
+                            'city' => $sale->customer->city,
+                        ] : null,
+                        'location' => [
+                            'id' => $sale->location->id,
+                            'name' => $sale->location->name,
+                            'city' => $sale->location->city,
+                        ],
+                        'sold_by' => $sale->creator->name,
+                        'sold_at' => $sale->sold_at->toIso8601String(),
+                        'subtotal' => $sale->subtotal,
+                        'discount' => $sale->discount,
+                        'total' => $sale->total,
+                        'paid' => $sale->paidAmount(),
+                        'balance' => $sale->balanceDue(),
+                        'status' => $sale->paymentStatus(),
+                        'items' => $sale->items->map(fn ($item): array => [
+                            'id' => $item->id,
+                            'piece_id' => $item->piece_id,
+                            'piece_code' => $item->piece_code,
+                            'name' => $item->name,
+                            'unit_price' => $item->unit_price,
+                        ]),
+                        'payments' => $sale->payments->where('status', 'active')->map(fn ($payment): array => [
+                            'id' => $payment->id,
+                            'amount' => $payment->amount,
+                            'method' => $payment->method,
+                            'received_at' => $payment->received_at->toIso8601String(),
+                        ])->values(),
+                    ],
+                ]);
+            }
+
             return to_route('sales.show', $sale);
         });
     }
 
-    public function show(Request $request, Sale $sale): Response
+    public function show(Request $request, Sale $sale): Response|JsonResponse
     {
         if ($request->user()->role->value === 'sales' && $sale->created_by !== $request->user()->id) {
             abort(403);
         }
 
-        $sale->load(['customer', 'location', 'items.piece', 'payments.receiver', 'payments.reverser']);
+        $sale->load(['customer', 'location', 'items.piece', 'payments.receiver', 'payments.reverser', 'creator']);
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'sale' => [
+                    'id' => $sale->id,
+                    'invoice_number' => $sale->invoice_number,
+                    'customer' => $sale->customer ? [
+                        'id' => $sale->customer->id,
+                        'name' => $sale->customer->name,
+                        'phone' => $sale->customer->phone,
+                        'city' => $sale->customer->city,
+                    ] : null,
+                    'location' => [
+                        'id' => $sale->location->id,
+                        'name' => $sale->location->name,
+                        'city' => $sale->location->city,
+                    ],
+                    'sold_by' => $sale->creator?->name ?? 'User',
+                    'sold_at' => $sale->sold_at->toIso8601String(),
+                    'subtotal' => $sale->subtotal,
+                    'discount' => $sale->discount,
+                    'total' => $sale->total,
+                    'paid' => $sale->paidAmount(),
+                    'balance' => $sale->balanceDue(),
+                    'status' => $sale->paymentStatus(),
+                    'items' => $sale->items->map(fn ($item): array => [
+                        'id' => $item->id,
+                        'piece_id' => $item->piece_id,
+                        'piece_code' => $item->piece_code,
+                        'name' => $item->name,
+                        'unit_price' => $item->unit_price,
+                    ]),
+                    'payments' => $sale->payments->where('status', 'active')->map(fn ($payment): array => [
+                        'id' => $payment->id,
+                        'amount' => $payment->amount,
+                        'method' => $payment->method,
+                        'received_at' => $payment->received_at->toIso8601String(),
+                    ])->values(),
+                    'can_void' => in_array('sales.void', config('roles.'.$request->user()->role->value, []), true),
+                ],
+            ]);
+        }
 
         return Inertia::render('sales/show', [
             'sale' => [
@@ -280,16 +394,28 @@ class SaleController extends Controller
         ]);
     }
 
-    public function void(Request $request, Sale $sale, PieceService $pieces): RedirectResponse
+    public function void(Request $request, Sale $sale, PieceService $pieces): RedirectResponse|JsonResponse
     {
-        return DB::transaction(function () use ($request, $sale, $pieces): RedirectResponse {
+        return DB::transaction(function () use ($request, $sale, $pieces): RedirectResponse|JsonResponse {
             $lockedSale = Sale::query()->lockForUpdate()->findOrFail($sale->id);
             if ($lockedSale->activePayments()->exists()) {
+                if ($request->wantsJson()) {
+                    return response()->json([
+                        'message' => 'This invoice has active payments. Reverse its payment receipt before voiding it.',
+                    ], 422);
+                }
+
                 return back()->withErrors([
                     'sale' => 'This invoice has active payments. Reverse its payment receipt before voiding it.',
                 ]);
             }
             if ($lockedSale->status === 'void') {
+                if ($request->wantsJson()) {
+                    return response()->json([
+                        'message' => 'This invoice has already been voided.',
+                    ], 422);
+                }
+
                 return back()->withErrors(['sale' => 'This invoice has already been voided.']);
             }
 
@@ -307,6 +433,13 @@ class SaleController extends Controller
                 }
             }
             $lockedSale->update(['status' => 'void']);
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "{$lockedSale->invoice_number} voided, pieces back in stock",
+                ]);
+            }
 
             return to_route('sales-history.index');
         });

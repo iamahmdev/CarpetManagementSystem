@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { formatDateTime, formatMoney } from '@/lib/ledger';
 import { PieceBarcode } from '@/components/piece-barcode';
+import { saveCart } from '@/lib/sale-cart';
 
 type PieceRow = {
     id: number;
@@ -28,6 +29,7 @@ type PieceDetail = PieceRow & {
     color: string;
     material: string;
     grade: 'A' | 'B';
+    location_id: number;
     location_type: string;
     container: string;
     can_add_to_sale: boolean;
@@ -320,12 +322,31 @@ export default function PiecesIndex(props: Props) {
                         <div className="ledger-piece-actions">
                             {props.can_create_sales &&
                                 selectedPiece.can_add_to_sale && (
-                                    <Button asChild className="demo-primary-button">
-                                        <Link
-                                            href={`/new-sale?piece_id=${selectedPiece.id}`}
-                                        >
-                                            Add to sale
-                                        </Link>
+                                    <Button
+                                        type="button"
+                                        className="demo-primary-button"
+                                        onClick={() => {
+                                            saveCart({
+                                                location_id: selectedPiece.location_id,
+                                                items: [
+                                                    {
+                                                        piece_id: selectedPiece.id,
+                                                        code: selectedPiece.code,
+                                                        name: `${selectedPiece.carpet} ${selectedPiece.size}`,
+                                                        price: selectedPiece.price,
+                                                    },
+                                                ],
+                                                discount: 0,
+                                                customer_id: '',
+                                                payment_method: 'cash',
+                                                paid_now: null,
+                                                filter_text: '',
+                                            });
+                                            closePiece(false);
+                                            router.visit('/new-sale');
+                                        }}
+                                    >
+                                        Add to sale
                                     </Button>
                                 )}
                             <Button
